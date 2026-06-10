@@ -497,7 +497,6 @@ const dom = {
   chartLogoInput: document.getElementById('chartLogoInput'),
   orgChartViewInput: document.getElementById('orgChartViewInput'),
   orgChartColorByInput: document.getElementById('orgChartColorByInput'),
-  orgChartLegendInput: document.getElementById('orgChartLegendInput'),
   employeePhotosInput: document.getElementById('employeePhotosInput'),
   shapeFillColorInput: document.getElementById('shapeFillColorInput'),
   shapeFillPatternInput: document.getElementById('shapeFillPatternInput'),
@@ -5272,7 +5271,6 @@ function syncControls() {
   }
   if (dom.orgChartViewInput) dom.orgChartViewInput.value = state.settings.orgChartView || 'standard';
   if (dom.orgChartColorByInput) dom.orgChartColorByInput.value = state.settings.orgChartColorBy || 'none';
-  if (dom.orgChartLegendInput) dom.orgChartLegendInput.checked = state.settings.showOrgChartBadges !== false;
   if (dom.employeePhotosInput) dom.employeePhotosInput.checked = state.settings.employeePhotos !== false;
   if (dom.shapeFillColorInput) dom.shapeFillColorInput.value = state.settings.cardBg;
   if (dom.shapeFillPatternInput) dom.shapeFillPatternInput.value = state.settings.cardFillPattern || 'none';
@@ -5457,12 +5455,6 @@ function bindControlEvents() {
 
   dom.orgChartColorByInput?.addEventListener('change', () => {
     state.settings.orgChartColorBy = dom.orgChartColorByInput.value;
-    syncControls();
-    render();
-  });
-
-  dom.orgChartLegendInput?.addEventListener('change', () => {
-    state.settings.showOrgChartBadges = dom.orgChartLegendInput.checked;
     syncControls();
     render();
   });
