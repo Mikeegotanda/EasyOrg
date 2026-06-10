@@ -546,7 +546,6 @@ const dom = {
   structureFreeformInput: document.getElementById('structureFreeformInput'),
   shadowIntensityInput: document.getElementById('shadowIntensityInput'),
   shadowIntensityValue: document.getElementById('shadowIntensityValue'),
-  blurStrengthInput: document.getElementById('blurStrengthInput'),
   connectorMarkersInput: document.getElementById('connectorMarkersInput'),
   cardVisualTypeInput: document.getElementById('cardVisualTypeInput'),
   bgColorInput: document.getElementById('bgColorInput'),
@@ -2534,7 +2533,6 @@ function renderCards(layouts) {
   const cardRadius = getCardRadiusFromShape();
   const fillAppearance = cardFillAppearance();
   const textScale = getCardTextScaleFactor();
-  const blurStrength = clamp(Number(state.settings.blurStrength || 10), 0, 24);
   const timings = animationTimings();
   const entranceClass = hasRenderedCanvasOnce ? '' : cardAnimationClass();
   const floatingClass = '';
@@ -2572,7 +2570,6 @@ function renderCards(layouts) {
         `background:${visual.background || fillAppearance.background}`,
         !visual.background && fillAppearance.backgroundSize ? `background-size:${fillAppearance.backgroundSize}` : '',
         visual.backdrop ? `backdrop-filter:${visual.backdrop}` : '',
-        state.settings.cardElevation === 'glass' && !visual.backdrop ? `backdrop-filter: blur(${blurStrength}px) saturate(125%)` : '',
         state.settings.cardElevation === 'glass' && !visual.background ? 'background: rgba(255,255,255,0.58)' : '',
         visual.accentHeight !== undefined ? `--card-accent-h:${visual.accentHeight}px` : '',
         `--card-view-color:${viewColor}`,
@@ -5301,7 +5298,6 @@ function syncControls() {
   setValue(dom.structureFreeformInput, String(state.settings.structureFreeform ?? 14));
   setValue(dom.shadowIntensityInput, String(state.settings.shadowIntensity ?? 100));
   if (dom.shadowIntensityValue) dom.shadowIntensityValue.textContent = `${Math.round(Number(dom.shadowIntensityInput?.value || state.settings.shadowIntensity || 100))}%`;
-  setValue(dom.blurStrengthInput, String(state.settings.blurStrength ?? 10));
   setValue(dom.connectorStartPointsInput, state.settings.connectorStartPoint || 'none');
   setValue(dom.connectorMarkersInput, state.settings.connectorEndPoint || 'none');
   setValue(dom.connectorStartMarkerScaleInput, String(state.settings.connectorStartMarkerScale ?? 1));
@@ -5678,11 +5674,6 @@ function bindControlEvents() {
   dom.shadowIntensityInput?.addEventListener('input', () => {
     state.settings.shadowIntensity = Number(dom.shadowIntensityInput.value);
     if (dom.shadowIntensityValue) dom.shadowIntensityValue.textContent = `${state.settings.shadowIntensity}%`;
-    scheduleTypographyRefresh();
-  });
-
-  dom.blurStrengthInput?.addEventListener('input', () => {
-    state.settings.blurStrength = Number(dom.blurStrengthInput.value);
     scheduleTypographyRefresh();
   });
 
