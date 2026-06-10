@@ -60,9 +60,7 @@ const PRESETS = {
     parallaxEnabled: false,
     parallaxAmount: 8,
     ambientGlow: false,
-    connectorVisualStyle: 'arrow',
-    connectorDecoration: 'none',
-    connectorStartPoint: 'none',
+    connectorMarkers: 'arrow-end',
     cardVisualType: 'standard',
     avatarTreatment: 'default',
     nodeStylePreset: 'visio-basic',
@@ -135,9 +133,7 @@ const PRESETS = {
     parallaxEnabled: false,
     parallaxAmount: 8,
     ambientGlow: false,
-    connectorVisualStyle: 'arrow',
-    connectorDecoration: 'none',
-    connectorStartPoint: 'none',
+    connectorMarkers: 'arrow-end',
     cardVisualType: 'standard',
     avatarTreatment: 'default'
   },
@@ -200,9 +196,7 @@ const PRESETS = {
     parallaxEnabled: false,
     parallaxAmount: 8,
     ambientGlow: false,
-    connectorVisualStyle: 'arrow',
-    connectorDecoration: 'none',
-    connectorStartPoint: 'none',
+    connectorMarkers: 'arrow-end',
     cardVisualType: 'standard',
     avatarTreatment: 'default'
   },
@@ -265,9 +259,7 @@ const PRESETS = {
     parallaxEnabled: false,
     parallaxAmount: 8,
     ambientGlow: false,
-    connectorVisualStyle: 'arrow',
-    connectorDecoration: 'none',
-    connectorStartPoint: 'none',
+    connectorMarkers: 'arrow-end',
     cardVisualType: 'editorial',
     avatarTreatment: 'default'
   }
@@ -374,11 +366,26 @@ function normalizeSettings(settings) {
   normalized.locationLineHeight = Number.isFinite(Number(normalized.locationLineHeight)) ? Number(normalized.locationLineHeight) : 1.12;
   normalized.cardFillPattern = normalized.cardFillPattern || 'none';
   normalized.cardLineStyle = normalized.cardLineStyle || 'solid';
-  const normalizedEndPoint = normalizeConnectorMarker(normalized.connectorVisualStyle);
-  const normalizedStartPoint = normalizeConnectorMarker(normalized.connectorStartPoint || normalized.connectorDecoration);
-  normalized.connectorVisualStyle = normalizedEndPoint === 'none' ? 'arrow' : normalizedEndPoint;
-  normalized.connectorStartPoint = normalizedStartPoint;
-  normalized.connectorDecoration = normalizedStartPoint;
+  const legacyEndPoint = normalizeConnectorMarker(normalized.connectorVisualStyle);
+  const legacyStartPoint = normalizeConnectorMarker(normalized.connectorStartPoint || normalized.connectorDecoration);
+  if (!normalized.connectorMarkers) {
+    if (legacyStartPoint === 'none' && legacyEndPoint === 'arrow') {
+      normalized.connectorMarkers = 'arrow-end';
+    } else if (legacyStartPoint === 'dot' && legacyEndPoint === 'arrow') {
+      normalized.connectorMarkers = 'dot-start-arrow-end';
+    } else if (legacyStartPoint === 'arrow' && legacyEndPoint === 'dot') {
+      normalized.connectorMarkers = 'dot-end-arrow-start';
+    } else if (legacyStartPoint === 'dot' && legacyEndPoint === 'dot') {
+      normalized.connectorMarkers = 'dot-both';
+    } else if (legacyStartPoint === 'arrow' && legacyEndPoint === 'arrow') {
+      normalized.connectorMarkers = 'arrow-both';
+    } else {
+      normalized.connectorMarkers = 'none';
+    }
+  }
+  normalized.connectorVisualStyle = legacyEndPoint;
+  normalized.connectorStartPoint = legacyStartPoint;
+  normalized.connectorDecoration = legacyStartPoint;
   normalized.employeeFields = {
     name: true,
     title: normalized.infoVisibility !== 'name-only',
@@ -535,8 +542,7 @@ const dom = {
   parallaxEnabledInput: document.getElementById('parallaxEnabledInput'),
   parallaxAmountInput: document.getElementById('parallaxAmountInput'),
   ambientGlowInput: document.getElementById('ambientGlowInput'),
-  connectorVisualStyleInput: document.getElementById('connectorVisualStyleInput'),
-  connectorDecorationInput: document.getElementById('connectorDecorationInput'),
+  connectorMarkersInput: document.getElementById('connectorMarkersInput'),
   cardVisualTypeInput: document.getElementById('cardVisualTypeInput'),
   avatarTreatmentInput: document.getElementById('avatarTreatmentInput'),
   bgColorInput: document.getElementById('bgColorInput'),
@@ -3042,6 +3048,26 @@ function normalizeConnectorMarker(value) {
   return 'none';
 }
 
+function connectorMarkerPreset(value) {
+  const normalized = String(value || '').toLowerCase();
+  if (normalized === 'dot-start-arrow-end') {
+    return { start: 'dot', end: 'arrow' };
+  }
+  if (normalized === 'dot-end-arrow-start') {
+    return { start: 'arrow', end: 'dot' };
+  }
+  if (normalized === 'dot-both') {
+    return { start: 'dot', end: 'dot' };
+  }
+  if (normalized === 'arrow-both') {
+    return { start: 'arrow', end: 'arrow' };
+  }
+  if (normalized === 'none') {
+    return { start: 'none', end: 'none' };
+  }
+  return { start: 'none', end: 'arrow' };
+}
+
 function syncConnectorLayerSize() {
   const layerWidth = dom.cardLayer.clientWidth || 1280;
   const layerHeight = dom.cardLayer.clientHeight || 560;
@@ -3057,8 +3083,9 @@ function renderConnectors(layouts) {
   const timings = animationTimings();
   const connectorClass = connectorAnimationClass();
   const visual = connectorVisualProfile();
-  const startMarker = normalizeConnectorMarker(state.settings.connectorStartPoint || state.settings.connectorDecoration);
-  const endMarker = normalizeConnectorMarker(state.settings.connectorVisualStyle);
+  const markerPreset = connectorMarkerPreset(state.settings.connectorMarkers);
+  const startMarker = markerPreset.start;
+  const endMarker = markerPreset.end;
   const baseDash =
     state.settings.connectorType === 'dashed'
       ? '9 7'
@@ -5395,8 +5422,7 @@ function syncControls() {
   setChecked(dom.parallaxEnabledInput, state.settings.parallaxEnabled === true);
   setValue(dom.parallaxAmountInput, String(state.settings.parallaxAmount ?? 8));
   setChecked(dom.ambientGlowInput, state.settings.ambientGlow === true);
-  setValue(dom.connectorVisualStyleInput, normalizeConnectorMarker(state.settings.connectorVisualStyle));
-  setValue(dom.connectorDecorationInput, normalizeConnectorMarker(state.settings.connectorStartPoint || state.settings.connectorDecoration));
+  setValue(dom.connectorMarkersInput, state.settings.connectorMarkers || 'arrow-end');
   setValue(dom.cardVisualTypeInput, state.settings.cardVisualType || 'standard');
   setValue(dom.avatarTreatmentInput, state.settings.avatarTreatment || 'default');
   setValue(dom.bgColorInput, state.settings.bgColor);
@@ -5795,13 +5821,8 @@ function bindControlEvents() {
     scheduleTypographyRefresh();
   });
 
-  dom.connectorVisualStyleInput?.addEventListener('change', () => {
-    state.settings.connectorVisualStyle = dom.connectorVisualStyleInput.value;
-    render();
-  });
-
-  dom.connectorDecorationInput?.addEventListener('change', () => {
-    state.settings.connectorStartPoint = dom.connectorDecorationInput.value;
+  dom.connectorMarkersInput?.addEventListener('change', () => {
+    state.settings.connectorMarkers = dom.connectorMarkersInput.value;
     render();
   });
 
