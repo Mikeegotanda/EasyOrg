@@ -3051,7 +3051,7 @@ function normalizeConnectorMarker(value) {
 function connectorEndpointPreset(value, fallback = 'none') {
   const normalized = normalizeConnectorMarker(value);
   if (normalized === 'none') {
-    return fallback;
+    return 'none';
   }
   return normalized;
 }
@@ -3087,7 +3087,7 @@ function renderConnectors(layouts) {
   const timings = animationTimings();
   const connectorClass = connectorAnimationClass();
   const startMarker = connectorEndpointPreset(state.settings.connectorStartPoint, 'none');
-  const endMarker = connectorEndpointPreset(state.settings.connectorEndPoint, 'arrow');
+  const endMarker = connectorEndpointPreset(state.settings.connectorEndPoint, 'none');
   const typeProfile = connectorTypePreset(state.settings.connectorType);
   const baseDash = typeProfile.dash || '';
   let pathIndex = 0;
@@ -5427,7 +5427,7 @@ function syncControls() {
   setValue(dom.connectorWeightInput, String(connectorThicknessValue()));
   if (dom.connectorWeightValue) dom.connectorWeightValue.textContent = `${connectorThicknessValue()} px`;
   setValue(dom.connectorStartPointsInput, state.settings.connectorStartPoint || 'none');
-  setValue(dom.connectorMarkersInput, state.settings.connectorEndPoint || 'arrow');
+  setValue(dom.connectorMarkersInput, state.settings.connectorEndPoint || 'none');
   setValue(dom.connectorStartMarkerScaleInput, String(state.settings.connectorStartMarkerScale ?? 1));
   if (dom.connectorStartMarkerScaleValue) dom.connectorStartMarkerScaleValue.textContent = `${Number(state.settings.connectorStartMarkerScale ?? 1).toFixed(1)}x`;
   setValue(dom.connectorMarkerScaleInput, String(state.settings.connectorMarkerScale ?? 1));
@@ -5447,7 +5447,7 @@ function syncControls() {
   setValue(dom.parallaxAmountInput, String(state.settings.parallaxAmount ?? 8));
   setChecked(dom.ambientGlowInput, state.settings.ambientGlow === true);
   setValue(dom.connectorStartPointsInput, state.settings.connectorStartPoint || 'none');
-  setValue(dom.connectorMarkersInput, state.settings.connectorEndPoint || 'arrow');
+  setValue(dom.connectorMarkersInput, state.settings.connectorEndPoint || 'none');
   setValue(dom.connectorStartMarkerScaleInput, String(state.settings.connectorStartMarkerScale ?? 1));
   if (dom.connectorStartMarkerScaleValue) dom.connectorStartMarkerScaleValue.textContent = `${Number(state.settings.connectorStartMarkerScale ?? 1).toFixed(1)}x`;
   setValue(dom.cardVisualTypeInput, state.settings.cardVisualType || 'standard');
