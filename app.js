@@ -393,16 +393,21 @@ function normalizeSettings(settings) {
   if (!normalized.connectorMarkers) {
     normalized.connectorMarkers = 'none';
   }
+  const employeeFields = normalized.employeeFields || {};
   normalized.employeeFields = {
-    name: true,
-    title: normalized.infoVisibility !== 'name-only',
-    department: normalized.infoVisibility === 'name-role-dept',
+    name: employeeFields.name !== false,
+    title: employeeFields.title !== false,
+    department: employeeFields.department === true,
     telephone: false,
     email: false,
     address: false,
-    location: false,
-    ...(normalized.employeeFields || {})
+    location: false
   };
+  normalized.infoVisibility = normalized.employeeFields.department
+    ? 'name-role-dept'
+    : normalized.employeeFields.title
+      ? 'name-role'
+      : 'name-only';
   return normalized;
 }
 
@@ -592,13 +597,6 @@ const dom = {
   emailSizeValue: document.getElementById('emailSizeValue'),
   emailLineHeightInput: document.getElementById('emailLineHeightInput'),
   emailLineHeightValue: document.getElementById('emailLineHeightValue'),
-  locationFontInput: document.getElementById('locationFontInput'),
-  locationColorInput: document.getElementById('locationColorInput'),
-  locationWeightInput: document.getElementById('locationWeightInput'),
-  locationSizeInput: document.getElementById('locationSizeInput'),
-  locationSizeValue: document.getElementById('locationSizeValue'),
-  locationLineHeightInput: document.getElementById('locationLineHeightInput'),
-  locationLineHeightValue: document.getElementById('locationLineHeightValue'),
   cardBgInput: document.getElementById('cardBgInput'),
   nameSizeInput: document.getElementById('nameSizeInput'),
   nameSizeValue: document.getElementById('nameSizeValue'),
@@ -624,7 +622,6 @@ const dom = {
   cardLayoutInput: document.getElementById('cardLayoutInput'),
   avatarStyleInput: document.getElementById('avatarStyleInput'),
   cardElevationInput: document.getElementById('cardElevationInput'),
-  infoVisibilityInput: document.getElementById('infoVisibilityInput'),
   backgroundImageInput: document.getElementById('backgroundImageInput'),
   autoConnectToggle: document.getElementById('autoConnectToggle'),
   undoBtn: document.getElementById('undoBtn'),
@@ -1600,7 +1597,6 @@ function startMemberEdit(memberId) {
   dom.newMemberTitle.value = member.title || '';
   dom.newMemberDepartment.value = member.department || '';
   if (dom.newMemberEmail) dom.newMemberEmail.value = member.email || '';
-  if (dom.newMemberLocation) dom.newMemberLocation.value = member.location || '';
   dom.newMemberPhoto.value = '';
   if (dom.memberFormSummary) {
     dom.memberFormSummary.textContent = 'Edit Team Member';
@@ -2241,8 +2237,8 @@ function cardTemplate(member, xCenter, nodeId) {
 
   const fields = state.settings.employeeFields || {};
   const showName = fields.name !== false;
-  const showRole = fields.title !== false && state.settings.infoVisibility !== 'name-only';
-  const showDept = fields.department === true || state.settings.infoVisibility === 'name-role-dept';
+  const showRole = fields.title !== false;
+  const showDept = fields.department === true;
   const extraFields = [
     fields.telephone && (member.telephone || member.phone) ? member.telephone || member.phone : '',
     fields.email && member.email ? member.email : '',
@@ -5482,11 +5478,6 @@ function syncControls() {
   if (dom.emailLineHeightValue) dom.emailLineHeightValue.textContent = `${(Number(dom.emailLineHeightInput?.value || 112) / 100).toFixed(2)}x`;
   if (dom.locationFontInput) dom.locationFontInput.value = state.settings.locationFont || state.settings.cardFont || 'Arial';
   if (dom.locationColorInput) dom.locationColorInput.value = state.settings.locationColor || state.settings.cardSubColor;
-  if (dom.locationWeightInput) dom.locationWeightInput.value = String(state.settings.locationWeight || 0);
-  if (dom.locationSizeInput) dom.locationSizeInput.value = String(state.settings.locationSize || 12);
-  if (dom.locationSizeValue) dom.locationSizeValue.textContent = `${Math.round(Number(dom.locationSizeInput?.value || state.settings.locationSize || 12))} px`;
-  if (dom.locationLineHeightInput) dom.locationLineHeightInput.value = String(Math.round((state.settings.locationLineHeight || 1.12) * 100));
-  if (dom.locationLineHeightValue) dom.locationLineHeightValue.textContent = `${(Number(dom.locationLineHeightInput?.value || 112) / 100).toFixed(2)}x`;
   setChecked(dom.cardShadowInput, state.settings.showShadow);
   setChecked(dom.cardOutlineInput, state.settings.showOutline);
   setValue(dom.cardRadiusInput, String(state.settings.cardRadius));
@@ -5496,7 +5487,6 @@ function syncControls() {
   setValue(dom.cardLayoutInput, state.settings.cardLayout);
   setValue(dom.avatarStyleInput, state.settings.avatarStyle);
   setValue(dom.cardElevationInput, state.settings.cardElevation);
-  setValue(dom.infoVisibilityInput, state.settings.infoVisibility);
   setChecked(dom.autoConnectToggle, state.autoConnect);
   syncTypographyPreview();
   syncTypographySliderState();
@@ -5995,21 +5985,6 @@ function bindControlEvents() {
     scheduleTypographyRefresh();
   });
 
-  dom.locationWeightInput?.addEventListener('change', () => {
-    state.settings.locationWeight = Number(dom.locationWeightInput.value);
-    scheduleTypographyRefresh();
-  });
-
-  dom.locationSizeInput?.addEventListener('input', () => {
-    state.settings.locationSize = Number(dom.locationSizeInput.value);
-    scheduleTypographyRefresh();
-  });
-
-  dom.locationLineHeightInput?.addEventListener('input', () => {
-    state.settings.locationLineHeight = Number(dom.locationLineHeightInput.value) / 100;
-    scheduleTypographyRefresh();
-  });
-
   dom.roleWeightInput?.addEventListener('change', () => {
     state.settings.roleWeight = Number(dom.roleWeightInput.value);
     scheduleTypographyRefresh();
@@ -6087,18 +6062,6 @@ function bindControlEvents() {
   dom.cardElevationInput?.addEventListener('change', () => {
     state.settings.cardElevation = dom.cardElevationInput.value;
     state.settings.nodeStylePreset = 'custom';
-    syncControls();
-    render();
-  });
-
-  dom.infoVisibilityInput?.addEventListener('change', () => {
-    state.settings.infoVisibility = dom.infoVisibilityInput.value;
-    state.settings.employeeFields = {
-      ...(state.settings.employeeFields || {}),
-      name: true,
-      title: dom.infoVisibilityInput.value !== 'name-only',
-      department: dom.infoVisibilityInput.value === 'name-role-dept'
-    };
     syncControls();
     render();
   });
