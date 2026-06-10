@@ -2898,30 +2898,48 @@ function onCardClick(nodeId) {
 }
 
 function getConnectorAnchors(fromLayout, toLayout) {
+  const chooseVerticalSide = () => {
+    const fromCenterY = fromLayout.yCenter;
+    const toCenterY = toLayout.yCenter;
+    return fromCenterY <= toCenterY
+      ? { fromY: fromLayout.y + fromLayout.height, toY: toLayout.y }
+      : { fromY: fromLayout.y, toY: toLayout.y + toLayout.height };
+  };
+
+  const chooseHorizontalSide = () => {
+    const fromCenterX = fromLayout.xCenter;
+    const toCenterX = toLayout.xCenter;
+    return fromCenterX <= toCenterX
+      ? { fromX: fromLayout.x + fromLayout.width, toX: toLayout.x }
+      : { fromX: fromLayout.x, toX: toLayout.x + toLayout.width };
+  };
+
   if (isHorizontalHierarchy()) {
-    const fromIsLeft = fromLayout.xCenter <= toLayout.xCenter;
+    const horizontal = chooseHorizontalSide();
     return {
-      fromX: fromIsLeft ? fromLayout.x + fromLayout.width : fromLayout.x,
+      fromX: horizontal.fromX,
       fromY: fromLayout.yCenter,
-      toX: fromIsLeft ? toLayout.x : toLayout.x + toLayout.width,
+      toX: horizontal.toX,
       toY: toLayout.yCenter
     };
   }
 
   if (state.settings.hierarchyDirection === 'bottom-up') {
+    const vertical = chooseVerticalSide();
     return {
       fromX: fromLayout.xCenter,
-      fromY: fromLayout.y,
+      fromY: vertical.fromY,
       toX: toLayout.xCenter,
-      toY: toLayout.y + toLayout.height
+      toY: vertical.toY
     };
   }
 
+  const vertical = chooseVerticalSide();
   return {
     fromX: fromLayout.xCenter,
-    fromY: fromLayout.y + fromLayout.height,
+    fromY: vertical.fromY,
     toX: toLayout.xCenter,
-    toY: toLayout.y
+    toY: vertical.toY
   };
 }
 
