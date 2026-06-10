@@ -504,7 +504,6 @@ const dom = {
   fieldTelephoneInput: document.getElementById('fieldTelephoneInput'),
   fieldEmailInput: document.getElementById('fieldEmailInput'),
   fieldAddressInput: document.getElementById('fieldAddressInput'),
-  fieldLocationInput: document.getElementById('fieldLocationInput'),
   removeDepartmentInput: document.getElementById('removeDepartmentInput'),
   removeDepartmentBtn: document.getElementById('removeDepartmentBtn'),
   clearLibraryBtn: document.getElementById('clearLibraryBtn'),
@@ -516,7 +515,6 @@ const dom = {
   newMemberTitle: document.getElementById('newMemberTitle'),
   newMemberDepartment: document.getElementById('newMemberDepartment'),
   newMemberEmail: document.getElementById('newMemberEmail'),
-  newMemberLocation: document.getElementById('newMemberLocation'),
   newMemberPhoto: document.getElementById('newMemberPhoto'),
   addMemberBtn: document.getElementById('addMemberBtn'),
   cancelEditMemberBtn: document.getElementById('cancelEditMemberBtn'),
@@ -1574,7 +1572,6 @@ function resetMemberForm() {
   if (dom.newMemberTitle) dom.newMemberTitle.value = '';
   if (dom.newMemberDepartment) dom.newMemberDepartment.value = '';
   if (dom.newMemberEmail) dom.newMemberEmail.value = '';
-  if (dom.newMemberLocation) dom.newMemberLocation.value = '';
   if (dom.newMemberPhoto) dom.newMemberPhoto.value = '';
   if (dom.memberFormSummary) {
     dom.memberFormSummary.textContent = 'Build From Image';
@@ -3588,7 +3585,6 @@ function addMemberFromForm() {
   const title = dom.newMemberTitle.value.trim();
   const department = dom.newMemberDepartment.value.trim();
   const email = dom.newMemberEmail?.value.trim() || '';
-  const location = dom.newMemberLocation?.value.trim() || '';
   if (!name || !title || !department) {
     notify('Name, position, and department are required.');
     return;
@@ -5100,8 +5096,7 @@ function employeeFieldSettingsFromControls() {
     department: dom.fieldDepartmentInput?.checked === true,
     telephone: dom.fieldTelephoneInput?.checked === true,
     email: dom.fieldEmailInput?.checked === true,
-    address: dom.fieldAddressInput?.checked === true,
-    location: dom.fieldLocationInput?.checked === true
+    address: dom.fieldAddressInput?.checked === true
   };
 }
 
@@ -5416,7 +5411,6 @@ function syncControls() {
   if (dom.fieldTelephoneInput) dom.fieldTelephoneInput.checked = fields.telephone === true;
   if (dom.fieldEmailInput) dom.fieldEmailInput.checked = fields.email === true;
   if (dom.fieldAddressInput) dom.fieldAddressInput.checked = fields.address === true;
-  if (dom.fieldLocationInput) dom.fieldLocationInput.checked = fields.location === true;
   syncTypographyFieldVisibility();
   setValue(dom.hierarchyDirectionInput, state.settings.hierarchyDirection);
   setValue(dom.nodeSpacingInput, state.settings.nodeSpacing);
@@ -5734,8 +5728,7 @@ function bindControlEvents() {
     dom.fieldDepartmentInput,
     dom.fieldTelephoneInput,
     dom.fieldEmailInput,
-    dom.fieldAddressInput,
-    dom.fieldLocationInput
+    dom.fieldAddressInput
   ].forEach((input) => {
     input?.addEventListener('change', applyEmployeeFieldsFromControls);
   });
