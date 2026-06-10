@@ -574,7 +574,6 @@ const dom = {
   ambientGlowInput: document.getElementById('ambientGlowInput'),
   connectorMarkersInput: document.getElementById('connectorMarkersInput'),
   cardVisualTypeInput: document.getElementById('cardVisualTypeInput'),
-  avatarTreatmentInput: document.getElementById('avatarTreatmentInput'),
   bgColorInput: document.getElementById('bgColorInput'),
   bgGradientEnabledInput: document.getElementById('bgGradientEnabledInput'),
   bgGradientColor2Input: document.getElementById('bgGradientColor2Input'),
@@ -5340,7 +5339,6 @@ function syncControls() {
   setValue(dom.connectorStartMarkerScaleInput, String(state.settings.connectorStartMarkerScale ?? 1));
   if (dom.connectorStartMarkerScaleValue) dom.connectorStartMarkerScaleValue.textContent = `${Number(state.settings.connectorStartMarkerScale ?? 1).toFixed(1)}x`;
   setValue(dom.cardVisualTypeInput, state.settings.cardVisualType || 'standard');
-  setValue(dom.avatarTreatmentInput, state.settings.avatarTreatment || 'default');
   setValue(dom.bgColorInput, state.settings.bgColor);
   setChecked(dom.bgGradientEnabledInput, state.settings.bgGradientEnabled === true);
   setValue(dom.bgGradientColor2Input, state.settings.bgGradientColor2 || '#dfe8f3');
