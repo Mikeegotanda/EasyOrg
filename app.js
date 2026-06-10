@@ -578,7 +578,6 @@ const dom = {
   bgColorInput: document.getElementById('bgColorInput'),
   bgGradientEnabledInput: document.getElementById('bgGradientEnabledInput'),
   bgGradientColor2Input: document.getElementById('bgGradientColor2Input'),
-  accentColorInput: document.getElementById('accentColorInput'),
   headingSizeInput: document.getElementById('headingSizeInput'),
   headingColorInput: document.getElementById('headingColorInput'),
   headingFontInput: document.getElementById('headingFontInput'),
@@ -5347,7 +5346,6 @@ function syncControls() {
   setValue(dom.bgColorInput, state.settings.bgColor);
   setChecked(dom.bgGradientEnabledInput, state.settings.bgGradientEnabled === true);
   setValue(dom.bgGradientColor2Input, state.settings.bgGradientColor2 || '#dfe8f3');
-  setValue(dom.accentColorInput, state.settings.accentColor);
   setValue(dom.headingSizeInput, String(state.settings.headingSize));
   if (dom.headingColorInput) dom.headingColorInput.value = state.settings.headingColor;
   setValue(dom.headingFontInput, state.settings.headingFont);
@@ -5798,11 +5796,6 @@ function bindControlEvents() {
   dom.bgGradientColor2Input?.addEventListener('input', () => {
     state.settings.bgGradientColor2 = dom.bgGradientColor2Input.value;
     scheduleTypographyRefresh();
-  });
-
-  dom.accentColorInput?.addEventListener('input', () => {
-    state.settings.accentColor = dom.accentColorInput.value;
-    render();
   });
 
   dom.headingSizeInput?.addEventListener('input', () => {
