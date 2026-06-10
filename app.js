@@ -61,6 +61,8 @@ const PRESETS = {
     parallaxEnabled: false,
     parallaxAmount: 8,
     ambientGlow: false,
+    connectorStartPoint: 'none',
+    connectorEndPoint: 'arrow',
     connectorMarkers: 'arrow-end',
     cardVisualType: 'standard',
     avatarTreatment: 'default',
@@ -135,6 +137,8 @@ const PRESETS = {
     parallaxEnabled: false,
     parallaxAmount: 8,
     ambientGlow: false,
+    connectorStartPoint: 'none',
+    connectorEndPoint: 'arrow',
     connectorMarkers: 'arrow-end',
     cardVisualType: 'standard',
     avatarTreatment: 'default'
@@ -199,6 +203,8 @@ const PRESETS = {
     parallaxEnabled: false,
     parallaxAmount: 8,
     ambientGlow: false,
+    connectorStartPoint: 'none',
+    connectorEndPoint: 'arrow',
     connectorMarkers: 'arrow-end',
     cardVisualType: 'standard',
     avatarTreatment: 'default'
@@ -263,6 +269,8 @@ const PRESETS = {
     parallaxEnabled: false,
     parallaxAmount: 8,
     ambientGlow: false,
+    connectorStartPoint: 'none',
+    connectorEndPoint: 'arrow',
     connectorMarkers: 'arrow-end',
     cardVisualType: 'editorial',
     avatarTreatment: 'default'
@@ -371,26 +379,15 @@ function normalizeSettings(settings) {
   normalized.cardFillPattern = normalized.cardFillPattern || 'none';
   normalized.cardLineStyle = normalized.cardLineStyle || 'solid';
   normalized.connectorMarkerScale = Number.isFinite(Number(normalized.connectorMarkerScale)) ? Number(normalized.connectorMarkerScale) : 1;
-  const legacyEndPoint = normalizeConnectorMarker(normalized.connectorVisualStyle);
   const legacyStartPoint = normalizeConnectorMarker(normalized.connectorStartPoint || normalized.connectorDecoration);
-  if (!normalized.connectorMarkers) {
-    if (legacyStartPoint === 'none' && legacyEndPoint === 'arrow') {
-      normalized.connectorMarkers = 'arrow-end';
-    } else if (legacyStartPoint === 'dot' && legacyEndPoint === 'arrow') {
-      normalized.connectorMarkers = 'dot-start-arrow-end';
-    } else if (legacyStartPoint === 'arrow' && legacyEndPoint === 'dot') {
-      normalized.connectorMarkers = 'dot-end-arrow-start';
-    } else if (legacyStartPoint === 'dot' && legacyEndPoint === 'dot') {
-      normalized.connectorMarkers = 'dot-both';
-    } else if (legacyStartPoint === 'arrow' && legacyEndPoint === 'arrow') {
-      normalized.connectorMarkers = 'arrow-both';
-    } else {
-      normalized.connectorMarkers = 'none';
-    }
-  }
-  normalized.connectorVisualStyle = legacyEndPoint;
+  const legacyEndPoint = normalizeConnectorMarker(normalized.connectorEndPoint || normalized.connectorVisualStyle);
   normalized.connectorStartPoint = legacyStartPoint;
+  normalized.connectorEndPoint = legacyEndPoint;
   normalized.connectorDecoration = legacyStartPoint;
+  normalized.connectorVisualStyle = legacyEndPoint;
+  if (!normalized.connectorMarkers) {
+    normalized.connectorMarkers = 'none';
+  }
   normalized.employeeFields = {
     name: true,
     title: normalized.infoVisibility !== 'name-only',
@@ -533,6 +530,7 @@ const dom = {
   connectorTypeInput: document.getElementById('connectorTypeInput'),
   connectorWeightInput: document.getElementById('connectorWeightInput'),
   connectorWeightValue: document.getElementById('connectorWeightValue'),
+  connectorStartPointsInput: document.getElementById('connectorStartPointsInput'),
   connectorMarkerScaleInput: document.getElementById('connectorMarkerScaleInput'),
   connectorMarkerScaleValue: document.getElementById('connectorMarkerScaleValue'),
   cardEntranceAnimationInput: document.getElementById('cardEntranceAnimationInput'),
@@ -2009,6 +2007,8 @@ function syncTypographySliderState() {
   setSliderFill(dom.emailLineHeightInput);
   setSliderFill(dom.locationSizeInput);
   setSliderFill(dom.locationLineHeightInput);
+  setSliderFill(dom.connectorWeightInput);
+  setSliderFill(dom.connectorMarkerScaleInput);
 
   setSliderLabelValue(dom.headingSizeValue, `${Math.round(Number(dom.headingSizeInput?.value || state.settings.headingSize || 0))} px`);
   setSliderLabelValue(dom.headingLineHeightValue, `${(Number(dom.headingLineHeightInput?.value || Math.round((state.settings.headingLineHeight || 1.02) * 100)) / 100).toFixed(2)}x`);
@@ -3039,24 +3039,12 @@ function normalizeConnectorMarker(value) {
   return 'none';
 }
 
-function connectorMarkerPreset(value) {
-  const normalized = String(value || '').toLowerCase();
-  if (normalized === 'dot-start-arrow-end') {
-    return { start: 'dot', end: 'arrow' };
-  }
-  if (normalized === 'dot-end-arrow-start') {
-    return { start: 'arrow', end: 'dot' };
-  }
-  if (normalized === 'dot-both') {
-    return { start: 'dot', end: 'dot' };
-  }
-  if (normalized === 'arrow-both') {
-    return { start: 'arrow', end: 'arrow' };
-  }
+function connectorEndpointPreset(value, fallback = 'none') {
+  const normalized = normalizeConnectorMarker(value);
   if (normalized === 'none') {
-    return { start: 'none', end: 'none' };
+    return fallback;
   }
-  return { start: 'none', end: 'arrow' };
+  return normalized;
 }
 
 function connectorTypePreset(value) {
@@ -3088,9 +3076,8 @@ function renderConnectors(layouts) {
   const markerScale = clamp(Number(state.settings.connectorMarkerScale || 1), 0.1, 2.4);
   const timings = animationTimings();
   const connectorClass = connectorAnimationClass();
-  const markerPreset = connectorMarkerPreset(state.settings.connectorMarkers);
-  const startMarker = markerPreset.start;
-  const endMarker = markerPreset.end;
+  const startMarker = connectorEndpointPreset(state.settings.connectorStartPoint, 'none');
+  const endMarker = connectorEndpointPreset(state.settings.connectorEndPoint, 'arrow');
   const typeProfile = connectorTypePreset(state.settings.connectorType);
   const baseDash = typeProfile.dash || '';
   let pathIndex = 0;
@@ -5419,6 +5406,8 @@ function syncControls() {
   setValue(dom.connectorTypeInput, state.settings.connectorType);
   setValue(dom.connectorWeightInput, String(connectorThicknessValue()));
   if (dom.connectorWeightValue) dom.connectorWeightValue.textContent = `${connectorThicknessValue()} px`;
+  setValue(dom.connectorStartPointsInput, state.settings.connectorStartPoint || 'none');
+  setValue(dom.connectorMarkersInput, state.settings.connectorEndPoint || 'arrow');
   setValue(dom.connectorMarkerScaleInput, String(state.settings.connectorMarkerScale ?? 1));
   if (dom.connectorMarkerScaleValue) dom.connectorMarkerScaleValue.textContent = `${Number(state.settings.connectorMarkerScale ?? 1).toFixed(1)}x`;
   setValue(dom.cardEntranceAnimationInput, state.settings.cardEntranceAnimation || 'none');
@@ -5435,7 +5424,8 @@ function syncControls() {
   setChecked(dom.parallaxEnabledInput, state.settings.parallaxEnabled === true);
   setValue(dom.parallaxAmountInput, String(state.settings.parallaxAmount ?? 8));
   setChecked(dom.ambientGlowInput, state.settings.ambientGlow === true);
-  setValue(dom.connectorMarkersInput, state.settings.connectorMarkers || 'arrow-end');
+  setValue(dom.connectorStartPointsInput, state.settings.connectorStartPoint || 'none');
+  setValue(dom.connectorMarkersInput, state.settings.connectorEndPoint || 'arrow');
   setValue(dom.cardVisualTypeInput, state.settings.cardVisualType || 'standard');
   setValue(dom.avatarTreatmentInput, state.settings.avatarTreatment || 'default');
   setValue(dom.bgColorInput, state.settings.bgColor);
@@ -5755,12 +5745,24 @@ function bindControlEvents() {
 
   dom.connectorWeightInput?.addEventListener('input', () => {
     state.settings.connectorWeight = Number(dom.connectorWeightInput.value);
+    setSliderFill(dom.connectorWeightInput);
     if (dom.connectorWeightValue) dom.connectorWeightValue.textContent = `${state.settings.connectorWeight} px`;
+    render();
+  });
+
+  dom.connectorStartPointsInput?.addEventListener('change', () => {
+    state.settings.connectorStartPoint = dom.connectorStartPointsInput.value;
+    render();
+  });
+
+  dom.connectorMarkersInput?.addEventListener('change', () => {
+    state.settings.connectorEndPoint = dom.connectorMarkersInput.value;
     render();
   });
 
   dom.connectorMarkerScaleInput?.addEventListener('input', () => {
     state.settings.connectorMarkerScale = Number(dom.connectorMarkerScaleInput.value);
+    setSliderFill(dom.connectorMarkerScaleInput);
     if (dom.connectorMarkerScaleValue) dom.connectorMarkerScaleValue.textContent = `${state.settings.connectorMarkerScale.toFixed(1)}x`;
     render();
   });
@@ -5838,11 +5840,6 @@ function bindControlEvents() {
   dom.ambientGlowInput?.addEventListener('change', () => {
     state.settings.ambientGlow = dom.ambientGlowInput.checked;
     scheduleTypographyRefresh();
-  });
-
-  dom.connectorMarkersInput?.addEventListener('change', () => {
-    state.settings.connectorMarkers = dom.connectorMarkersInput.value;
-    render();
   });
 
   dom.cardVisualTypeInput?.addEventListener('change', () => {

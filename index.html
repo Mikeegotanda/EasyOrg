@@ -834,22 +834,29 @@
               </select>
             </div>
           </div>
-          <div class="field-stack compact">
-            <label for="connectorWeightInput">Connector Weight</label>
-            <input id="connectorWeightInput" class="pro-slider" type="range" min="1" max="12" />
-            <div class="slider-meta"><span id="connectorWeightValue" class="slider-value"></span></div>
-          </div>
           <div class="grid-2">
+            <div class="field-stack compact">
+              <label for="connectorStartPointsInput">Connector Start Points</label>
+              <select id="connectorStartPointsInput">
+                <option value="none">None</option>
+                <option value="arrow">Arrow</option>
+                <option value="dot">Dot</option>
+              </select>
+            </div>
             <div class="field-stack compact">
               <label for="connectorMarkersInput">Connector End Points</label>
               <select id="connectorMarkersInput">
                 <option value="none">None</option>
-                <option value="arrow-end">Arrow to End</option>
-                <option value="dot-start-arrow-end">Dot to Arrow</option>
-                <option value="dot-end-arrow-start">Arrow to Dot</option>
-                <option value="dot-both">Dot to Dot</option>
-                <option value="arrow-both">Arrow to Arrow</option>
+                <option value="arrow">Arrow</option>
+                <option value="dot">Dot</option>
               </select>
+            </div>
+          </div>
+          <div class="grid-2">
+            <div class="field-stack compact">
+              <label for="connectorWeightInput">Connector Weight</label>
+              <input id="connectorWeightInput" class="pro-slider" type="range" min="1" max="12" />
+              <div class="slider-meta"><span id="connectorWeightValue" class="slider-value"></span></div>
             </div>
             <div class="field-stack compact">
               <label for="connectorMarkerScaleInput">Endpoint Size</label>
