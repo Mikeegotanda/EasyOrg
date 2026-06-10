@@ -273,6 +273,7 @@ const STORAGE_KEY = 'teamgen-state-v2';
 const CHART_ARCHIVE_KEY = 'teamgen-chart-archive-v1';
 const WINDOW_STATE_KEY = 'teamgen-window-state-v1';
 const SERVER_STATE_ENDPOINT = '/__easyorg_state';
+const HASH_STATE_PREFIX = '#easyorg-state=';
 const STATE_DB_NAME = 'teamgen-state-db';
 const STATE_DB_STORE = 'state';
 const STATE_DB_KEY = 'current';
@@ -7116,6 +7117,45 @@ function setWindowStatePayload(payload) {
   }
 }
 
+function encodeStateToHash(payload) {
+  try {
+    return `${HASH_STATE_PREFIX}${encodeURIComponent(btoa(JSON.stringify(payload)))}`;
+  } catch (error) {
+    console.warn('Could not encode state for URL hash.', error);
+    return '';
+  }
+}
+
+function decodeStateFromHash() {
+  try {
+    const hash = typeof location !== 'undefined' ? String(location.hash || '') : '';
+    if (!hash.startsWith(HASH_STATE_PREFIX)) {
+      return null;
+    }
+    return JSON.parse(atob(decodeURIComponent(hash.slice(HASH_STATE_PREFIX.length))));
+  } catch (error) {
+    console.warn('Could not decode state from URL hash.', error);
+    return null;
+  }
+}
+
+function setStateInHash(payload) {
+  try {
+    if (typeof location === 'undefined') {
+      return false;
+    }
+    const nextHash = encodeStateToHash(payload);
+    if (!nextHash) {
+      return false;
+    }
+    location.hash = nextHash.slice(1);
+    return true;
+  } catch (error) {
+    console.warn('Could not write state to URL hash.', error);
+    return false;
+  }
+}
+
 function getStoredStateString() {
   try {
     return typeof localStorage !== 'undefined' ? localStorage.getItem(STORAGE_KEY) : null;
@@ -7139,30 +7179,54 @@ function setStoredStateString(value) {
 }
 
 async function saveStateToServer(payload) {
-  try {
-    const response = await fetch(SERVER_STATE_ENDPOINT, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
-    return response.ok;
-  } catch (error) {
-    console.warn('Could not save TeamGen state to the local server.', error);
-    return false;
-  }
+  return new Promise((resolve) => {
+    try {
+      const iframe = document.createElement('iframe');
+      iframe.hidden = true;
+      iframe.src = `${SERVER_STATE_ENDPOINT}?mode=save&payload=${encodeURIComponent(btoa(JSON.stringify(payload)))}`;
+      iframe.onload = () => {
+        iframe.remove();
+        resolve(true);
+      };
+      iframe.onerror = () => {
+        iframe.remove();
+        resolve(false);
+      };
+      document.body.appendChild(iframe);
+    } catch (error) {
+      console.warn('Could not save TeamGen state to the local server.', error);
+      resolve(false);
+    }
+  });
 }
 
 async function loadStateFromServer() {
-  try {
-    const response = await fetch(SERVER_STATE_ENDPOINT, { method: 'GET' });
-    if (!response.ok) {
-      return null;
+  return new Promise((resolve) => {
+    try {
+      const iframe = document.createElement('iframe');
+      iframe.hidden = true;
+      iframe.src = `${SERVER_STATE_ENDPOINT}?mode=load&_=${Date.now()}`;
+      iframe.onload = () => {
+        try {
+          const text = iframe.contentDocument?.body?.textContent || '';
+          resolve(text ? JSON.parse(text) : null);
+        } catch (parseError) {
+          console.warn('Could not parse TeamGen state from the local server.', parseError);
+          resolve(null);
+        } finally {
+          iframe.remove();
+        }
+      };
+      iframe.onerror = () => {
+        iframe.remove();
+        resolve(null);
+      };
+      document.body.appendChild(iframe);
+    } catch (error) {
+      console.warn('Could not read TeamGen state from the local server.', error);
+      resolve(null);
     }
-    return await response.json();
-  } catch (error) {
-    console.warn('Could not read TeamGen state from the local server.', error);
-    return null;
-  }
+  });
 }
 
 function openStateDb() {
@@ -7228,6 +7292,7 @@ function markStateStoredInIndexedDb() {
 async function persistStateAsync() {
   const payload = buildStatePayload();
   let savedToWindow = false;
+  let savedToHash = setStateInHash(payload);
   if (setStoredStateString(JSON.stringify(payload))) {
     savedToWindow = setWindowStatePayload(payload);
     return true;
@@ -7245,25 +7310,28 @@ async function persistStateAsync() {
   const serverSaved = await saveStateToServer(payload);
   if (serverSaved) {
     setWindowStatePayload(payload);
+    savedToHash = setStateInHash(payload) || savedToHash;
     return true;
   }
 
-  return setWindowStatePayload(payload) || savedToWindow;
+  return setWindowStatePayload(payload) || savedToWindow || savedToHash;
 }
 
 function persistState() {
   const payload = buildStatePayload();
+  const savedToHash = setStateInHash(payload);
   if (setStoredStateString(JSON.stringify(payload))) {
     setWindowStatePayload(payload);
     return true;
   }
   console.warn('Could not save TeamGen state to localStorage; saving to IndexedDB in the background.');
   setWindowStatePayload(payload);
+  setStateInHash(payload);
   saveStateToIndexedDb(payload)
     .then(markStateStoredInIndexedDb)
     .catch((dbError) => console.warn('Could not save TeamGen state to IndexedDB.', dbError));
   saveStateToServer(payload).catch((error) => console.warn('Could not save TeamGen state to the local server.', error));
-  return false;
+  return savedToHash;
 }
 
 function applyStatePayload(parsed) {
@@ -7291,6 +7359,12 @@ function isValidStatePayload(payload) {
 }
 
 async function restoreState() {
+  const hashState = decodeStateFromHash();
+  if (isValidStatePayload(hashState)) {
+    applyStatePayload(hashState);
+    return;
+  }
+
   const windowState = getWindowStatePayload();
   if (isValidStatePayload(windowState)) {
     applyStatePayload(windowState);
