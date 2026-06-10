@@ -500,8 +500,6 @@ const dom = {
   employeePhotosInput: document.getElementById('employeePhotosInput'),
   shapeFillColorInput: document.getElementById('shapeFillColorInput'),
   shapeFillPatternInput: document.getElementById('shapeFillPatternInput'),
-  shapeTextColorInput: document.getElementById('shapeTextColorInput'),
-  shapeSubTextColorInput: document.getElementById('shapeSubTextColorInput'),
   shapeFontInput: document.getElementById('shapeFontInput'),
   shapeLineColorInput: document.getElementById('shapeLineColorInput'),
   shapeLineStyleInput: document.getElementById('shapeLineStyleInput'),
@@ -5274,8 +5272,6 @@ function syncControls() {
   if (dom.employeePhotosInput) dom.employeePhotosInput.checked = state.settings.employeePhotos !== false;
   if (dom.shapeFillColorInput) dom.shapeFillColorInput.value = state.settings.cardBg;
   if (dom.shapeFillPatternInput) dom.shapeFillPatternInput.value = state.settings.cardFillPattern || 'none';
-  if (dom.shapeTextColorInput) dom.shapeTextColorInput.value = state.settings.cardTextColor;
-  if (dom.shapeSubTextColorInput) dom.shapeSubTextColorInput.value = state.settings.cardSubColor;
   if (dom.shapeFontInput) dom.shapeFontInput.value = state.settings.cardFont || state.settings.headingFont || 'Arial';
   if (dom.shapeLineColorInput) dom.shapeLineColorInput.value = state.settings.outlineColor;
   if (dom.shapeLineStyleInput) dom.shapeLineStyleInput.value = state.settings.cardLineStyle || 'solid';
@@ -5478,12 +5474,6 @@ function bindControlEvents() {
     render();
   });
 
-  dom.shapeTextColorInput?.addEventListener('input', () => {
-    state.settings.cardTextColor = dom.shapeTextColorInput.value;
-    state.settings.nodeStylePreset = 'custom';
-    scheduleTypographyRefresh();
-  });
-
   dom.headingColorInput?.addEventListener('input', () => {
     state.settings.headingColor = dom.headingColorInput.value;
     scheduleTypographyRefresh();
@@ -5491,12 +5481,6 @@ function bindControlEvents() {
 
   dom.cardTextColorInput?.addEventListener('input', () => {
     state.settings.cardTextColor = dom.cardTextColorInput.value;
-    scheduleTypographyRefresh();
-  });
-
-  dom.shapeSubTextColorInput?.addEventListener('input', () => {
-    state.settings.cardSubColor = dom.shapeSubTextColorInput.value;
-    state.settings.nodeStylePreset = 'custom';
     scheduleTypographyRefresh();
   });
 
