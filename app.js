@@ -2913,22 +2913,21 @@ function onCardClick(nodeId) {
 }
 
 function getConnectorAnchors(fromLayout, toLayout) {
-  const dx = toLayout.xCenter - fromLayout.xCenter;
-  const dy = toLayout.yCenter - fromLayout.yCenter;
-  const horizontalDominant = Math.abs(dx) > Math.abs(dy);
   const anchorInset = 2;
 
-  if (horizontalDominant) {
-    const fromIsLeft = dx >= 0;
+  if (isHorizontalHierarchy()) {
+    const fromIsLeading = state.settings.hierarchyDirection === 'left-right'
+      ? fromLayout.xCenter <= toLayout.xCenter
+      : fromLayout.xCenter >= toLayout.xCenter;
     return {
-      fromX: fromIsLeft ? fromLayout.x + fromLayout.width - anchorInset : fromLayout.x + anchorInset,
+      fromX: fromIsLeading ? fromLayout.x + fromLayout.width - anchorInset : fromLayout.x + anchorInset,
       fromY: fromLayout.y + fromLayout.height / 2,
-      toX: fromIsLeft ? toLayout.x + anchorInset : toLayout.x + toLayout.width - anchorInset,
+      toX: fromIsLeading ? toLayout.x + anchorInset : toLayout.x + toLayout.width - anchorInset,
       toY: toLayout.y + toLayout.height / 2
     };
   }
 
-  const targetIsBelow = dy >= 0;
+  const targetIsBelow = state.settings.hierarchyDirection !== 'bottom-up';
   return {
     fromX: fromLayout.x + fromLayout.width / 2,
     fromY: targetIsBelow ? fromLayout.y + fromLayout.height - anchorInset : fromLayout.y + anchorInset,
