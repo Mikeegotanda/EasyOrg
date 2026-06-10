@@ -381,58 +381,6 @@ body {
   gap: 10px;
 }
 
-.text-preview-row {
-  display: grid;
-  gap: 8px;
-}
-
-.text-preview-label {
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: #45607d;
-}
-
-.typography-preview {
-  border: 1px solid rgba(207, 216, 226, 0.96);
-  border-radius: var(--ui-radius);
-  background: linear-gradient(180deg, rgba(249, 251, 254, 0.98), rgba(241, 246, 252, 0.98));
-  padding: 12px;
-  display: grid;
-  gap: 8px;
-}
-
-.typography-preview-title {
-  color: #0f1720;
-  font-family: "Sora", sans-serif;
-  font-size: 22px;
-  font-weight: 800;
-  line-height: 1.02;
-  letter-spacing: -0.02em;
-}
-
-.typography-preview-body {
-  display: grid;
-  gap: 2px;
-}
-
-.typography-preview-name {
-  color: #12202f;
-  font-family: "Manrope", sans-serif;
-  font-size: 15px;
-  font-weight: 700;
-  line-height: 1.12;
-}
-
-.typography-preview-role {
-  color: #506275;
-  font-family: "Manrope", sans-serif;
-  font-size: 11px;
-  font-weight: 400;
-  line-height: 1.15;
-}
-
 .slider-field {
   gap: 4px;
 }
@@ -2383,3 +2331,6 @@ body {
     height: 36px;
   }
 }
+
+
+

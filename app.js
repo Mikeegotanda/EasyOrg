@@ -592,9 +592,6 @@ const dom = {
   headingTrackingValue: document.getElementById('headingTrackingValue'),
   cardFontInput: document.getElementById('cardFontInput'),
   cardTextColorInput: document.getElementById('cardTextColorInput'),
-  typographyPreviewTitle: document.querySelector('.typography-preview-title'),
-  typographyPreviewName: document.querySelector('.typography-preview-name'),
-  typographyPreviewRole: document.querySelector('.typography-preview-role'),
   departmentTypography: document.querySelector('[data-typography-field="department"]'),
   emailTypography: document.querySelector('[data-typography-field="email"]'),
   locationTypography: document.querySelector('[data-typography-field="location"]'),
@@ -1809,117 +1806,6 @@ function populateFontSelectors() {
   populateFontSelect(dom.departmentFontInput);
   populateFontSelect(dom.emailFontInput);
   populateFontSelect(dom.locationFontInput);
-}
-
-function syncTypographyPreview() {
-  if (dom.typographyPreviewTitle) {
-    dom.typographyPreviewTitle.style.fontFamily = `${state.settings.headingFont || 'Arial'}, sans-serif`;
-    dom.typographyPreviewTitle.style.fontSize = `${Math.max(20, Math.round((state.settings.headingSize || 58) * 0.4))}px`;
-    dom.typographyPreviewTitle.style.fontWeight = String(Number(state.settings.headingWeight) || 400);
-    dom.typographyPreviewTitle.style.lineHeight = String(state.settings.headingLineHeight || 1.02);
-    dom.typographyPreviewTitle.style.letterSpacing = `${Number(state.settings.headingTracking || 0).toFixed(2)}em`;
-    dom.typographyPreviewTitle.style.color = state.settings.headingColor || '#0f131a';
-  }
-  if (dom.typographyPreviewName) {
-    dom.typographyPreviewName.style.fontFamily = `${state.settings.cardFont || state.settings.headingFont || 'Arial'}, sans-serif`;
-    dom.typographyPreviewName.style.fontSize = `${Math.max(13, Math.round((state.settings.nameSize || 16) * 0.9))}px`;
-    dom.typographyPreviewName.style.fontWeight = String(Number(state.settings.nameWeight) || 400);
-    dom.typographyPreviewName.style.lineHeight = String(state.settings.nameLineHeight || 1.12);
-    dom.typographyPreviewName.style.letterSpacing = `${Number(state.settings.nameTracking || 0).toFixed(2)}em`;
-    dom.typographyPreviewName.style.color = state.settings.cardTextColor || '#101820';
-  }
-  if (dom.typographyPreviewRole) {
-    dom.typographyPreviewRole.style.fontFamily = `${state.settings.cardFont || state.settings.headingFont || 'Arial'}, sans-serif`;
-    dom.typographyPreviewRole.style.fontSize = `${Math.max(11, Math.round((state.settings.roleSize || 11) * 0.95))}px`;
-    dom.typographyPreviewRole.style.fontWeight = String(Number(state.settings.roleWeight) || 400);
-    dom.typographyPreviewRole.style.lineHeight = String(state.settings.roleLineHeight || 1.15);
-    dom.typographyPreviewRole.style.letterSpacing = `${Number(state.settings.roleTracking || 0).toFixed(2)}em`;
-    dom.typographyPreviewRole.style.color = state.settings.cardSubColor || '#263342';
-  }
-  syncTypographySliderState();
-}
-
-function applyCardTypographyStyles() {
-  if (!dom.cardLayer) {
-    return;
-  }
-  const textScale = getCardTextScaleFactor();
-  const cardBorder = getCardBorderStyle();
-  const cardShadow = getCardShadowFromElevation();
-  const cardRadius = getCardRadiusFromShape();
-  const fillAppearance = cardFillAppearance();
-  const visual = cardVisualStyles();
-  const blurStrength = clamp(Number(state.settings.blurStrength || 10), 0, 24);
-  dom.cardLayer.querySelectorAll('.canvas-card').forEach((card) => {
-    const nodeId = card.dataset.nodeId;
-    const node = state.nodes[nodeId];
-    const member = node ? getMemberById(node.memberId) : null;
-    const colorByValue = member ? memberOrgViewValue(member, nodeId) : '';
-    const viewColor = state.settings.orgChartColorBy && state.settings.orgChartColorBy !== 'none'
-      ? colorFromValue(colorByValue)
-      : state.settings.accentColor;
-    const viewBorder = state.settings.orgChartColorBy && state.settings.orgChartColorBy !== 'none'
-      ? `${Math.max(2, Number(state.settings.outlineWidth) || 1)}px ${state.settings.cardLineStyle === 'none' ? 'solid' : state.settings.cardLineStyle || 'solid'} ${viewColor}`
-      : cardBorder;
-    card.style.fontFamily = `${state.settings.cardFont || state.settings.headingFont || 'Manrope'}, sans-serif`;
-    card.style.border = visual.border || viewBorder;
-    card.style.boxShadow = cardShadow;
-    card.style.borderRadius = `${cardRadius}px`;
-    card.style.background = visual.background || fillAppearance.background;
-    card.style.backgroundSize = !visual.background && fillAppearance.backgroundSize ? fillAppearance.backgroundSize : '';
-    card.style.backdropFilter = visual.backdrop || (
-      state.settings.cardElevation === 'glass'
-        ? `blur(${blurStrength}px) saturate(125%)`
-        : ''
-    );
-    card.style.setProperty('--card-name-color', state.settings.cardTextColor);
-    card.style.setProperty('--card-role-color', state.settings.cardSubColor);
-    card.style.setProperty('--card-view-color', viewColor);
-  });
-  dom.cardLayer.querySelectorAll('.card-name').forEach((element) => {
-    element.style.fontSize = `${Math.max(9, Math.round(state.settings.nameSize * textScale))}px`;
-    element.style.fontWeight = String(Number(state.settings.nameWeight) || 400);
-    element.style.color = state.settings.cardTextColor;
-    element.style.lineHeight = String(state.settings.nameLineHeight || 1.12);
-    element.style.letterSpacing = `${Number(state.settings.nameTracking || 0).toFixed(2)}em`;
-  });
-  dom.cardLayer.querySelectorAll('.card-role').forEach((element) => {
-    element.style.fontSize = `${Math.max(8, Math.round(state.settings.roleSize * textScale))}px`;
-    element.style.color = state.settings.cardSubColor;
-    element.style.fontWeight = String(state.settings.roleWeight || 400);
-    element.style.lineHeight = String(state.settings.roleLineHeight || 1.15);
-    element.style.letterSpacing = `${Number(state.settings.roleTracking || 0).toFixed(2)}em`;
-  });
-  [
-    ['.card-title', state.settings.headingFont || 'Arial', Math.max(10, Math.round(state.settings.headingSize * textScale * 0.34)), Number(state.settings.headingWeight) || 400, state.settings.headingLineHeight || 1.02, state.settings.headingTracking || 0, state.settings.headingColor],
-    ['.card-department', state.settings.departmentFont || state.settings.cardFont || 'Arial', Math.max(8, Math.round(state.settings.departmentSize * textScale)), Number(state.settings.departmentWeight) || 400, state.settings.departmentLineHeight || 1.12, 0, state.settings.departmentColor || state.settings.cardSubColor],
-    ['.card-email', state.settings.emailFont || state.settings.cardFont || 'Arial', Math.max(8, Math.round(state.settings.emailSize * textScale)), Number(state.settings.emailWeight) || 400, state.settings.emailLineHeight || 1.12, 0, state.settings.emailColor || state.settings.cardSubColor],
-    ['.card-location', state.settings.locationFont || state.settings.cardFont || 'Arial', Math.max(8, Math.round(state.settings.locationSize * textScale)), Number(state.settings.locationWeight) || 400, state.settings.locationLineHeight || 1.12, 0, state.settings.locationColor || state.settings.cardSubColor]
-  ].forEach(([selector, font, size, weight, lineHeight, tracking, color]) => {
-    dom.cardLayer.querySelectorAll(selector).forEach((element) => {
-      element.style.fontFamily = `${font}, sans-serif`;
-      element.style.fontSize = `${size}px`;
-      element.style.fontWeight = String(weight);
-      element.style.color = color;
-      element.style.lineHeight = String(lineHeight);
-      element.style.letterSpacing = `${Number(tracking || 0).toFixed(2)}em`;
-    });
-  });
-}
-
-let typographyPersistTimer = null;
-
-function scheduleTypographyRefresh() {
-  syncTypographyPreview();
-  applyStyleToSlide();
-  applyCardTypographyStyles();
-  if (typographyPersistTimer) {
-    clearTimeout(typographyPersistTimer);
-  }
-  typographyPersistTimer = setTimeout(() => {
-    typographyPersistTimer = null;
-    scheduleStatePersistence();
-  }, 250);
 }
 
 function syncTypographyFieldVisibility() {
@@ -3557,7 +3443,6 @@ function refreshCanvas(persist = true, options = {}) {
   updateToolbarViewButtons();
   updateMinimap(layouts);
   updateHistoryButtons();
-  syncTypographyPreview();
   if (options.centerContent) {
     requestAnimationFrame(() => centerCanvasOnContent(layouts, options.smoothCenter !== false));
   }
@@ -5506,7 +5391,6 @@ function syncControls() {
   setValue(dom.avatarStyleInput, state.settings.avatarStyle);
   setValue(dom.cardElevationInput, state.settings.cardElevation);
   setChecked(dom.autoConnectToggle, state.autoConnect);
-  syncTypographyPreview();
   syncTypographySliderState();
 }
 
@@ -7710,6 +7594,7 @@ boot().catch((error) => {
   fitCanvasOnOpen();
   notify('Ready. Drag members to build your org chart slide.');
 });
+
 
 
 
