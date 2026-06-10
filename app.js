@@ -553,8 +553,6 @@ const dom = {
   connectorAnimationInput: document.getElementById('connectorAnimationInput'),
   animationSpeedInput: document.getElementById('animationSpeedInput'),
   layoutModeInput: document.getElementById('layoutModeInput'),
-  formalOrganicInput: document.getElementById('formalOrganicInput'),
-  symmetryDynamicInput: document.getElementById('symmetryDynamicInput'),
   structureFreeformInput: document.getElementById('structureFreeformInput'),
   shadowIntensityInput: document.getElementById('shadowIntensityInput'),
   blurStrengthInput: document.getElementById('blurStrengthInput'),
@@ -5306,8 +5304,6 @@ function syncControls() {
   setValue(dom.connectorAnimationInput, state.settings.connectorAnimation || 'none');
   setValue(dom.animationSpeedInput, state.settings.animationSpeed || 'normal');
   setValue(dom.layoutModeInput, state.settings.layoutMode || 'strict');
-  setValue(dom.formalOrganicInput, String(state.settings.formalOrganic ?? 20));
-  setValue(dom.symmetryDynamicInput, String(state.settings.symmetryDynamic ?? 18));
   setValue(dom.structureFreeformInput, String(state.settings.structureFreeform ?? 14));
   setValue(dom.shadowIntensityInput, String(state.settings.shadowIntensity ?? 100));
   setValue(dom.blurStrengthInput, String(state.settings.blurStrength ?? 10));
@@ -5646,16 +5642,6 @@ function bindControlEvents() {
   dom.layoutModeInput?.addEventListener('change', () => {
     state.settings.layoutMode = dom.layoutModeInput.value;
     syncControls();
-    render();
-  });
-
-  dom.formalOrganicInput?.addEventListener('input', () => {
-    state.settings.formalOrganic = Number(dom.formalOrganicInput.value);
-    render();
-  });
-
-  dom.symmetryDynamicInput?.addEventListener('input', () => {
-    state.settings.symmetryDynamic = Number(dom.symmetryDynamicInput.value);
     render();
   });
 
