@@ -271,6 +271,8 @@ const PRESETS = {
 
 const STORAGE_KEY = 'teamgen-state-v2';
 const CHART_ARCHIVE_KEY = 'teamgen-chart-archive-v1';
+const WINDOW_STATE_KEY = 'teamgen-window-state-v1';
+const SERVER_STATE_ENDPOINT = '/__easyorg_state';
 const STATE_DB_NAME = 'teamgen-state-db';
 const STATE_DB_STORE = 'state';
 const STATE_DB_KEY = 'current';
@@ -7085,6 +7087,84 @@ function buildStatePayload() {
   };
 }
 
+function getWindowStatePayload() {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+  const raw = window.name || '';
+  if (!raw.startsWith(`${WINDOW_STATE_KEY}:`)) {
+    return null;
+  }
+  try {
+    return JSON.parse(atob(raw.slice(WINDOW_STATE_KEY.length + 1)));
+  } catch (error) {
+    console.warn('Could not read window.name state.', error);
+    return null;
+  }
+}
+
+function setWindowStatePayload(payload) {
+  if (typeof window === 'undefined') {
+    return false;
+  }
+  try {
+    window.name = `${WINDOW_STATE_KEY}:${btoa(JSON.stringify(payload))}`;
+    return true;
+  } catch (error) {
+    console.warn('Could not write window.name state.', error);
+    return false;
+  }
+}
+
+function getStoredStateString() {
+  try {
+    return typeof localStorage !== 'undefined' ? localStorage.getItem(STORAGE_KEY) : null;
+  } catch (error) {
+    console.warn('Could not read localStorage state.', error);
+    return null;
+  }
+}
+
+function setStoredStateString(value) {
+  try {
+    if (typeof localStorage === 'undefined') {
+      return false;
+    }
+    localStorage.setItem(STORAGE_KEY, value);
+    return true;
+  } catch (error) {
+    console.warn('Could not write localStorage state.', error);
+    return false;
+  }
+}
+
+async function saveStateToServer(payload) {
+  try {
+    const response = await fetch(SERVER_STATE_ENDPOINT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    return response.ok;
+  } catch (error) {
+    console.warn('Could not save TeamGen state to the local server.', error);
+    return false;
+  }
+}
+
+async function loadStateFromServer() {
+  try {
+    const response = await fetch(SERVER_STATE_ENDPOINT, { method: 'GET' });
+    if (!response.ok) {
+      return null;
+    }
+    return await response.json();
+  } catch (error) {
+    console.warn('Could not read TeamGen state from the local server.', error);
+    return null;
+  }
+}
+
 function openStateDb() {
   return new Promise((resolve, reject) => {
     if (!window.indexedDB) {
@@ -7136,8 +7216,10 @@ function loadStateFromIndexedDb() {
 
 function markStateStoredInIndexedDb() {
   try {
-    localStorage.removeItem(STORAGE_KEY);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ storage: 'indexeddb', savedAt: Date.now() }));
+    if (typeof localStorage !== 'undefined') {
+      localStorage.removeItem(STORAGE_KEY);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ storage: 'indexeddb', savedAt: Date.now() }));
+    }
   } catch (error) {
     console.warn('Could not write IndexedDB state marker.', error);
   }
@@ -7145,35 +7227,43 @@ function markStateStoredInIndexedDb() {
 
 async function persistStateAsync() {
   const payload = buildStatePayload();
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+  let savedToWindow = false;
+  if (setStoredStateString(JSON.stringify(payload))) {
+    savedToWindow = setWindowStatePayload(payload);
     return true;
-  } catch (localError) {
-    console.warn('Could not save TeamGen state to localStorage; trying IndexedDB.', localError);
   }
 
   try {
     await saveStateToIndexedDb(payload);
     markStateStoredInIndexedDb();
+    savedToWindow = setWindowStatePayload(payload);
     return true;
   } catch (dbError) {
     console.warn('Could not save TeamGen state to IndexedDB.', dbError);
-    return false;
   }
+
+  const serverSaved = await saveStateToServer(payload);
+  if (serverSaved) {
+    setWindowStatePayload(payload);
+    return true;
+  }
+
+  return setWindowStatePayload(payload) || savedToWindow;
 }
 
 function persistState() {
   const payload = buildStatePayload();
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+  if (setStoredStateString(JSON.stringify(payload))) {
+    setWindowStatePayload(payload);
     return true;
-  } catch (error) {
-    console.warn('Could not save TeamGen state to localStorage; saving to IndexedDB in the background.', error);
-    saveStateToIndexedDb(payload)
-      .then(markStateStoredInIndexedDb)
-      .catch((dbError) => console.warn('Could not save TeamGen state to IndexedDB.', dbError));
-    return false;
   }
+  console.warn('Could not save TeamGen state to localStorage; saving to IndexedDB in the background.');
+  setWindowStatePayload(payload);
+  saveStateToIndexedDb(payload)
+    .then(markStateStoredInIndexedDb)
+    .catch((dbError) => console.warn('Could not save TeamGen state to IndexedDB.', dbError));
+  saveStateToServer(payload).catch((error) => console.warn('Could not save TeamGen state to the local server.', error));
+  return false;
 }
 
 function applyStatePayload(parsed) {
@@ -7201,7 +7291,19 @@ function isValidStatePayload(payload) {
 }
 
 async function restoreState() {
-  const stored = localStorage.getItem(STORAGE_KEY);
+  const windowState = getWindowStatePayload();
+  if (isValidStatePayload(windowState)) {
+    applyStatePayload(windowState);
+    return;
+  }
+
+  const serverState = await loadStateFromServer();
+  if (isValidStatePayload(serverState)) {
+    applyStatePayload(serverState);
+    return;
+  }
+
+  const stored = getStoredStateString();
   if (!stored) {
     const indexedState = await loadStateFromIndexedDb().catch((error) => {
       console.warn('Could not read IndexedDB state.', error);
