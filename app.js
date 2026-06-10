@@ -2919,12 +2919,12 @@ function getConnectorAnchors(fromLayout, toLayout) {
     };
   }
 
-  const fromIsAbove = dy >= 0;
+  const targetIsBelow = dy >= 0;
   return {
     fromX: fromLayout.xCenter,
-    fromY: fromIsAbove ? fromLayout.y + fromLayout.height : fromLayout.y,
+    fromY: targetIsBelow ? fromLayout.y + fromLayout.height : fromLayout.y,
     toX: toLayout.xCenter,
-    toY: fromIsAbove ? toLayout.y : toLayout.y + toLayout.height
+    toY: targetIsBelow ? toLayout.y : toLayout.y + toLayout.height
   };
 }
 
@@ -3085,7 +3085,7 @@ function renderConnectors(layouts) {
   const paths = [];
   const decorations = [];
   const strokeWidth = connectorThicknessValue();
-  const markerScale = clamp(Number(state.settings.connectorMarkerScale || 1), 0.6, 2.4);
+  const markerScale = clamp(Number(state.settings.connectorMarkerScale || 1), 0.1, 2.4);
   const timings = animationTimings();
   const connectorClass = connectorAnimationClass();
   const markerPreset = connectorMarkerPreset(state.settings.connectorMarkers);
