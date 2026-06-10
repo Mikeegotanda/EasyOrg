@@ -2922,18 +2922,17 @@ function getConnectorAnchors(fromLayout, toLayout) {
     const fromIsLeft = dx >= 0;
     return {
       fromX: fromIsLeft ? fromLayout.x + fromLayout.width : fromLayout.x,
-      fromY: fromLayout.yCenter,
+      fromY: fromLayout.y + fromLayout.height / 2,
       toX: fromIsLeft ? toLayout.x : toLayout.x + toLayout.width,
-      toY: toLayout.yCenter
+      toY: toLayout.y + toLayout.height / 2
     };
   }
 
   const targetIsBelow = dy >= 0;
-  const sourceGoesRight = dx >= 0;
   return {
-    fromX: sourceGoesRight ? fromLayout.x + fromLayout.width : fromLayout.x,
+    fromX: fromLayout.x + fromLayout.width / 2,
     fromY: targetIsBelow ? fromLayout.y + fromLayout.height : fromLayout.y,
-    toX: sourceGoesRight ? toLayout.x : toLayout.x + toLayout.width,
+    toX: toLayout.x + toLayout.width / 2,
     toY: targetIsBelow ? toLayout.y : toLayout.y + toLayout.height
   };
 }
