@@ -7297,6 +7297,12 @@ function scheduleStatePersistence(delay = 1000) {
   return true;
 }
 
+function scheduleTypographyRefresh() {
+  render();
+  scheduleStatePersistence();
+  return true;
+}
+
 function scheduleFullStatePersistence(delay = 1500) {
   if (fullStatePersistTimer) {
     clearTimeout(fullStatePersistTimer);
