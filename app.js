@@ -61,9 +61,6 @@ const PRESETS = {
     shadowIntensity: 100,
     blurStrength: 10,
     backgroundDepth: 0,
-    floatingCards: true,
-    parallaxEnabled: false,
-    parallaxAmount: 8,
     ambientGlow: false,
     connectorStartPoint: 'none',
     connectorEndPoint: 'arrow',
@@ -140,9 +137,6 @@ const PRESETS = {
     shadowIntensity: 100,
     blurStrength: 10,
     backgroundDepth: 0,
-    floatingCards: true,
-    parallaxEnabled: false,
-    parallaxAmount: 8,
     ambientGlow: false,
     connectorStartPoint: 'none',
     connectorEndPoint: 'arrow',
@@ -209,9 +203,6 @@ const PRESETS = {
     shadowIntensity: 112,
     blurStrength: 10,
     backgroundDepth: 0,
-    floatingCards: true,
-    parallaxEnabled: false,
-    parallaxAmount: 8,
     ambientGlow: false,
     connectorStartPoint: 'none',
     connectorEndPoint: 'arrow',
@@ -278,9 +269,6 @@ const PRESETS = {
     shadowIntensity: 78,
     blurStrength: 6,
     backgroundDepth: 0,
-    floatingCards: true,
-    parallaxEnabled: false,
-    parallaxAmount: 8,
     ambientGlow: false,
     connectorStartPoint: 'none',
     connectorEndPoint: 'arrow',
@@ -563,9 +551,6 @@ const dom = {
   shadowIntensityInput: document.getElementById('shadowIntensityInput'),
   blurStrengthInput: document.getElementById('blurStrengthInput'),
   backgroundDepthInput: document.getElementById('backgroundDepthInput'),
-  floatingCardsInput: document.getElementById('floatingCardsInput'),
-  parallaxEnabledInput: document.getElementById('parallaxEnabledInput'),
-  parallaxAmountInput: document.getElementById('parallaxAmountInput'),
   connectorMarkersInput: document.getElementById('connectorMarkersInput'),
   cardVisualTypeInput: document.getElementById('cardVisualTypeInput'),
   bgColorInput: document.getElementById('bgColorInput'),
@@ -2556,7 +2541,7 @@ function renderCards(layouts) {
   const blurStrength = clamp(Number(state.settings.blurStrength || 10), 0, 24);
   const timings = animationTimings();
   const entranceClass = hasRenderedCanvasOnce ? '' : cardAnimationClass();
-  const floatingClass = state.settings.floatingCards ? ' float-on-hover' : '';
+  const floatingClass = '';
 
   dom.cardLayer.innerHTML = Object.entries(layouts)
     .map(([nodeId, layout]) => {
@@ -5330,9 +5315,6 @@ function syncControls() {
   setValue(dom.shadowIntensityInput, String(state.settings.shadowIntensity ?? 100));
   setValue(dom.blurStrengthInput, String(state.settings.blurStrength ?? 10));
   setValue(dom.backgroundDepthInput, String(state.settings.backgroundDepth ?? 24));
-  setChecked(dom.floatingCardsInput, state.settings.floatingCards !== false);
-  setChecked(dom.parallaxEnabledInput, state.settings.parallaxEnabled === true);
-  setValue(dom.parallaxAmountInput, String(state.settings.parallaxAmount ?? 8));
   setValue(dom.connectorStartPointsInput, state.settings.connectorStartPoint || 'none');
   setValue(dom.connectorMarkersInput, state.settings.connectorEndPoint || 'none');
   setValue(dom.connectorStartMarkerScaleInput, String(state.settings.connectorStartMarkerScale ?? 1));
@@ -5721,25 +5703,6 @@ function bindControlEvents() {
     scheduleTypographyRefresh();
   });
 
-  dom.floatingCardsInput?.addEventListener('change', () => {
-    state.settings.floatingCards = dom.floatingCardsInput.checked;
-    render();
-  });
-
-  dom.parallaxEnabledInput?.addEventListener('change', () => {
-    state.settings.parallaxEnabled = dom.parallaxEnabledInput.checked;
-    if (!state.settings.parallaxEnabled) {
-      dom.cardLayer.style.transform = 'translate3d(0, 0, 0)';
-      dom.connectorLayer.style.transform = 'translate3d(0, 0, 0)';
-    }
-    render();
-  });
-
-  dom.parallaxAmountInput?.addEventListener('input', () => {
-    state.settings.parallaxAmount = Number(dom.parallaxAmountInput.value);
-    render();
-  });
-
   dom.cardVisualTypeInput?.addEventListener('change', () => {
     state.settings.cardVisualType = dom.cardVisualTypeInput.value;
     state.settings.nodeStylePreset = 'custom';
@@ -6084,7 +6047,6 @@ function bindControlEvents() {
     notify('Card added to canvas.');
   });
 
-  dom.slide?.addEventListener('pointermove', applyParallaxFromPointer);
   dom.slide?.addEventListener('pointerleave', () => {
     dom.cardLayer.style.transform = 'translate3d(0, 0, 0)';
     dom.connectorLayer.style.transform = 'translate3d(0, 0, 0)';
@@ -6612,24 +6574,6 @@ function generateFromPrompt() {
 
 function scalePreview() {
   applyCanvasZoom(state.canvasZoom);
-}
-
-function applyParallaxFromPointer(event) {
-  if (!state.settings.parallaxEnabled) {
-    dom.cardLayer.style.transform = 'translate3d(0, 0, 0)';
-    dom.connectorLayer.style.transform = 'translate3d(0, 0, 0)';
-    return;
-  }
-  const rect = dom.slide.getBoundingClientRect();
-  const px = clamp((event.clientX - rect.left) / rect.width, 0, 1) - 0.5;
-  const py = clamp((event.clientY - rect.top) / rect.height, 0, 1) - 0.5;
-  const amount = clamp(Number(state.settings.parallaxAmount || 8), 0, 24);
-  const cardX = Math.round(px * amount * 2);
-  const cardY = Math.round(py * amount * 2);
-  const lineX = Math.round(px * amount * 1.2);
-  const lineY = Math.round(py * amount * 1.2);
-  dom.cardLayer.style.transform = `translate3d(${cardX}px, ${cardY}px, 0)`;
-  dom.connectorLayer.style.transform = `translate3d(${lineX}px, ${lineY}px, 0)`;
 }
 
 function membersForStorage() {
