@@ -4369,7 +4369,6 @@ function applyImageImportStyle() {
     connectorWeight: 'thin',
     connectorAnimation: 'none',
     cardEntranceAnimation: 'none',
-    floatingCards: false,
     layoutMode: 'strict',
     structureFreeform: 100,
     symmetryDynamic: 0,
