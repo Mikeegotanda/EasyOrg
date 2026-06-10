@@ -2916,13 +2916,14 @@ function getConnectorAnchors(fromLayout, toLayout) {
   const dx = toLayout.xCenter - fromLayout.xCenter;
   const dy = toLayout.yCenter - fromLayout.yCenter;
   const horizontalDominant = Math.abs(dx) > Math.abs(dy);
+  const anchorInset = 2;
 
   if (horizontalDominant) {
     const fromIsLeft = dx >= 0;
     return {
-      fromX: fromIsLeft ? fromLayout.x + fromLayout.width : fromLayout.x,
+      fromX: fromIsLeft ? fromLayout.x + fromLayout.width - anchorInset : fromLayout.x + anchorInset,
       fromY: fromLayout.y + fromLayout.height / 2,
-      toX: fromIsLeft ? toLayout.x : toLayout.x + toLayout.width,
+      toX: fromIsLeft ? toLayout.x + anchorInset : toLayout.x + toLayout.width - anchorInset,
       toY: toLayout.y + toLayout.height / 2
     };
   }
@@ -2930,9 +2931,9 @@ function getConnectorAnchors(fromLayout, toLayout) {
   const targetIsBelow = dy >= 0;
   return {
     fromX: fromLayout.x + fromLayout.width / 2,
-    fromY: targetIsBelow ? fromLayout.y + fromLayout.height : fromLayout.y,
+    fromY: targetIsBelow ? fromLayout.y + fromLayout.height - anchorInset : fromLayout.y + anchorInset,
     toX: toLayout.x + toLayout.width / 2,
-    toY: targetIsBelow ? toLayout.y : toLayout.y + toLayout.height
+    toY: targetIsBelow ? toLayout.y + anchorInset : toLayout.y + toLayout.height - anchorInset
   };
 }
 
