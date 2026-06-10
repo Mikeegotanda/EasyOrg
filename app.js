@@ -2570,7 +2570,7 @@ function renderCards(layouts) {
         `height:${layout.height}px`,
         `border:${visual.border || viewBorder}`,
         `box-shadow:${cardShadow}`,
-        `border-radius:${cardRadius}%`,
+        `border-radius:${cardRadius}px`,
         `font-family:${state.settings.cardFont || state.settings.headingFont || 'Manrope'}, sans-serif`,
         `--enter-duration:${timings.cardDuration}ms`,
         `--enter-delay:${animationDelay}ms`,
