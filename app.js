@@ -60,6 +60,10 @@ const PRESETS = {
     structureFreeform: 14,
     shadowIntensity: 100,
     blurStrength: 10,
+    backgroundDepth: 0,
+    floatingCards: true,
+    parallaxEnabled: false,
+    parallaxAmount: 8,
     ambientGlow: false,
     connectorStartPoint: 'none',
     connectorEndPoint: 'arrow',
@@ -135,6 +139,10 @@ const PRESETS = {
     structureFreeform: 14,
     shadowIntensity: 100,
     blurStrength: 10,
+    backgroundDepth: 0,
+    floatingCards: true,
+    parallaxEnabled: false,
+    parallaxAmount: 8,
     ambientGlow: false,
     connectorStartPoint: 'none',
     connectorEndPoint: 'arrow',
@@ -200,6 +208,10 @@ const PRESETS = {
     structureFreeform: 18,
     shadowIntensity: 112,
     blurStrength: 10,
+    backgroundDepth: 0,
+    floatingCards: true,
+    parallaxEnabled: false,
+    parallaxAmount: 8,
     ambientGlow: false,
     connectorStartPoint: 'none',
     connectorEndPoint: 'arrow',
@@ -265,6 +277,10 @@ const PRESETS = {
     structureFreeform: 30,
     shadowIntensity: 78,
     blurStrength: 6,
+    backgroundDepth: 0,
+    floatingCards: true,
+    parallaxEnabled: false,
+    parallaxAmount: 8,
     ambientGlow: false,
     connectorStartPoint: 'none',
     connectorEndPoint: 'arrow',
@@ -479,6 +495,8 @@ const dom = {
   formatNodeStyleInput: document.getElementById('formatNodeStyleInput'),
   formatPictureUploadInput: document.getElementById('formatPictureUploadInput'),
   chartLogoInput: document.getElementById('chartLogoInput'),
+  showChartLogoInput: document.getElementById('showChartLogoInput'),
+  showChartLegendInput: document.getElementById('showChartLegendInput'),
   orgChartViewInput: document.getElementById('orgChartViewInput'),
   orgChartColorByInput: document.getElementById('orgChartColorByInput'),
   orgChartLegendInput: document.getElementById('orgChartLegendInput'),
@@ -545,7 +563,12 @@ const dom = {
   symmetryDynamicInput: document.getElementById('symmetryDynamicInput'),
   structureFreeformInput: document.getElementById('structureFreeformInput'),
   shadowIntensityInput: document.getElementById('shadowIntensityInput'),
-  shadowIntensityValue: document.getElementById('shadowIntensityValue'),
+  blurStrengthInput: document.getElementById('blurStrengthInput'),
+  backgroundDepthInput: document.getElementById('backgroundDepthInput'),
+  floatingCardsInput: document.getElementById('floatingCardsInput'),
+  parallaxEnabledInput: document.getElementById('parallaxEnabledInput'),
+  parallaxAmountInput: document.getElementById('parallaxAmountInput'),
+  ambientGlowInput: document.getElementById('ambientGlowInput'),
   connectorMarkersInput: document.getElementById('connectorMarkersInput'),
   cardVisualTypeInput: document.getElementById('cardVisualTypeInput'),
   bgColorInput: document.getElementById('bgColorInput'),
@@ -2533,9 +2556,10 @@ function renderCards(layouts) {
   const cardRadius = getCardRadiusFromShape();
   const fillAppearance = cardFillAppearance();
   const textScale = getCardTextScaleFactor();
+  const blurStrength = clamp(Number(state.settings.blurStrength || 10), 0, 24);
   const timings = animationTimings();
   const entranceClass = hasRenderedCanvasOnce ? '' : cardAnimationClass();
-  const floatingClass = '';
+  const floatingClass = state.settings.floatingCards ? ' float-on-hover' : '';
 
   dom.cardLayer.innerHTML = Object.entries(layouts)
     .map(([nodeId, layout]) => {
@@ -2570,6 +2594,7 @@ function renderCards(layouts) {
         `background:${visual.background || fillAppearance.background}`,
         !visual.background && fillAppearance.backgroundSize ? `background-size:${fillAppearance.backgroundSize}` : '',
         visual.backdrop ? `backdrop-filter:${visual.backdrop}` : '',
+        state.settings.cardElevation === 'glass' && !visual.backdrop ? `backdrop-filter: blur(${blurStrength}px) saturate(125%)` : '',
         state.settings.cardElevation === 'glass' && !visual.background ? 'background: rgba(255,255,255,0.58)' : '',
         visual.accentHeight !== undefined ? `--card-accent-h:${visual.accentHeight}px` : '',
         `--card-view-color:${viewColor}`,
@@ -3065,10 +3090,18 @@ function updateHeaderHeight() {
 function applySlideBackgroundLayers() {
   const bg = state.settings.bgColor || '#ffffff';
   const gradientColor2 = state.settings.bgGradientColor2 || '#dfe8f3';
+  const depth = clamp(Number(state.settings.backgroundDepth || 0) / 100, 0, 1);
   const images = [];
   const sizes = [];
   const positions = [];
   const repeats = [];
+
+  if (depth > 0) {
+    images.push(`radial-gradient(1000px 480px at 50% -20%, rgba(255,255,255,${0.28 + depth * 0.24}), rgba(255,255,255,0))`);
+    sizes.push('auto');
+    positions.push('center top');
+    repeats.push('no-repeat');
+  }
 
   if (state.settings.bgGradientEnabled) {
     images.push(`linear-gradient(155deg, ${withAlpha(bg, '26')} 0%, ${withAlpha(gradientColor2, 'B8')} 100%)`);
@@ -3165,7 +3198,8 @@ function applyStyleToSlide() {
   dom.slide.style.setProperty('--card-outline', state.settings.outlineColor);
   const blurStrength = clamp(Number(state.settings.blurStrength || 10), 0, 24);
   const shadowIntensity = clamp((Number(state.settings.shadowIntensity) || 100) / 100, 0, 2.2);
-  dom.slide.style.boxShadow = `0 ${Math.round(18 * shadowIntensity)}px ${Math.round(34 * shadowIntensity)}px rgba(23, 33, 45, ${0.22 * Math.max(0.4, shadowIntensity)})`;
+  const glow = state.settings.ambientGlow ? `0 0 ${Math.round(28 + shadowIntensity * 30)}px ${state.settings.accentColor}30` : '';
+  dom.slide.style.boxShadow = `0 ${Math.round(18 * shadowIntensity)}px ${Math.round(34 * shadowIntensity)}px rgba(23, 33, 45, ${0.22 * Math.max(0.4, shadowIntensity)})${glow ? `, ${glow}` : ''}`;
   dom.slide.style.backdropFilter = `blur(${Math.round(blurStrength * 0.12)}px)`;
 
   applySlideBackgroundLayers();
@@ -4354,6 +4388,7 @@ function applyImageImportStyle() {
     connectorWeight: 'thin',
     connectorAnimation: 'none',
     cardEntranceAnimation: 'none',
+    floatingCards: false,
     layoutMode: 'strict',
     structureFreeform: 100,
     symmetryDynamic: 0,
@@ -5250,6 +5285,8 @@ function syncControls() {
   if (dom.formatNodeStyleInput) {
     dom.formatNodeStyleInput.value = state.settings.nodeStylePreset || 'visio-basic';
   }
+  if (dom.showChartLogoInput) dom.showChartLogoInput.checked = state.settings.showChartLogo !== false;
+  if (dom.showChartLegendInput) dom.showChartLegendInput.checked = state.settings.showChartLegend !== false;
   if (dom.orgChartViewInput) dom.orgChartViewInput.value = state.settings.orgChartView || 'standard';
   if (dom.orgChartColorByInput) dom.orgChartColorByInput.value = state.settings.orgChartColorBy || 'none';
   if (dom.orgChartLegendInput) dom.orgChartLegendInput.checked = state.settings.showOrgChartBadges !== false;
@@ -5297,7 +5334,12 @@ function syncControls() {
   setValue(dom.symmetryDynamicInput, String(state.settings.symmetryDynamic ?? 18));
   setValue(dom.structureFreeformInput, String(state.settings.structureFreeform ?? 14));
   setValue(dom.shadowIntensityInput, String(state.settings.shadowIntensity ?? 100));
-  if (dom.shadowIntensityValue) dom.shadowIntensityValue.textContent = `${Math.round(Number(dom.shadowIntensityInput?.value || state.settings.shadowIntensity || 100))}%`;
+  setValue(dom.blurStrengthInput, String(state.settings.blurStrength ?? 10));
+  setValue(dom.backgroundDepthInput, String(state.settings.backgroundDepth ?? 24));
+  setChecked(dom.floatingCardsInput, state.settings.floatingCards !== false);
+  setChecked(dom.parallaxEnabledInput, state.settings.parallaxEnabled === true);
+  setValue(dom.parallaxAmountInput, String(state.settings.parallaxAmount ?? 8));
+  setChecked(dom.ambientGlowInput, state.settings.ambientGlow === true);
   setValue(dom.connectorStartPointsInput, state.settings.connectorStartPoint || 'none');
   setValue(dom.connectorMarkersInput, state.settings.connectorEndPoint || 'none');
   setValue(dom.connectorStartMarkerScaleInput, String(state.settings.connectorStartMarkerScale ?? 1));
@@ -5425,6 +5467,18 @@ function bindControlEvents() {
     render();
     scheduleStatePersistence();
     notify('Chart logo added.');
+  });
+
+  dom.showChartLogoInput?.addEventListener('change', () => {
+    state.settings.showChartLogo = dom.showChartLogoInput.checked;
+    syncControls();
+    render();
+  });
+
+  dom.showChartLegendInput?.addEventListener('change', () => {
+    state.settings.showChartLegend = dom.showChartLegendInput.checked;
+    syncControls();
+    render();
   });
 
   dom.orgChartViewInput?.addEventListener('change', () => {
@@ -5673,7 +5727,40 @@ function bindControlEvents() {
 
   dom.shadowIntensityInput?.addEventListener('input', () => {
     state.settings.shadowIntensity = Number(dom.shadowIntensityInput.value);
-    if (dom.shadowIntensityValue) dom.shadowIntensityValue.textContent = `${state.settings.shadowIntensity}%`;
+    scheduleTypographyRefresh();
+  });
+
+  dom.blurStrengthInput?.addEventListener('input', () => {
+    state.settings.blurStrength = Number(dom.blurStrengthInput.value);
+    scheduleTypographyRefresh();
+  });
+
+  dom.backgroundDepthInput?.addEventListener('input', () => {
+    state.settings.backgroundDepth = Number(dom.backgroundDepthInput.value);
+    scheduleTypographyRefresh();
+  });
+
+  dom.floatingCardsInput?.addEventListener('change', () => {
+    state.settings.floatingCards = dom.floatingCardsInput.checked;
+    render();
+  });
+
+  dom.parallaxEnabledInput?.addEventListener('change', () => {
+    state.settings.parallaxEnabled = dom.parallaxEnabledInput.checked;
+    if (!state.settings.parallaxEnabled) {
+      dom.cardLayer.style.transform = 'translate3d(0, 0, 0)';
+      dom.connectorLayer.style.transform = 'translate3d(0, 0, 0)';
+    }
+    render();
+  });
+
+  dom.parallaxAmountInput?.addEventListener('input', () => {
+    state.settings.parallaxAmount = Number(dom.parallaxAmountInput.value);
+    render();
+  });
+
+  dom.ambientGlowInput?.addEventListener('change', () => {
+    state.settings.ambientGlow = dom.ambientGlowInput.checked;
     scheduleTypographyRefresh();
   });
 
@@ -6021,6 +6108,7 @@ function bindControlEvents() {
     notify('Card added to canvas.');
   });
 
+  dom.slide?.addEventListener('pointermove', applyParallaxFromPointer);
   dom.slide?.addEventListener('pointerleave', () => {
     dom.cardLayer.style.transform = 'translate3d(0, 0, 0)';
     dom.connectorLayer.style.transform = 'translate3d(0, 0, 0)';
@@ -6548,6 +6636,24 @@ function generateFromPrompt() {
 
 function scalePreview() {
   applyCanvasZoom(state.canvasZoom);
+}
+
+function applyParallaxFromPointer(event) {
+  if (!state.settings.parallaxEnabled) {
+    dom.cardLayer.style.transform = 'translate3d(0, 0, 0)';
+    dom.connectorLayer.style.transform = 'translate3d(0, 0, 0)';
+    return;
+  }
+  const rect = dom.slide.getBoundingClientRect();
+  const px = clamp((event.clientX - rect.left) / rect.width, 0, 1) - 0.5;
+  const py = clamp((event.clientY - rect.top) / rect.height, 0, 1) - 0.5;
+  const amount = clamp(Number(state.settings.parallaxAmount || 8), 0, 24);
+  const cardX = Math.round(px * amount * 2);
+  const cardY = Math.round(py * amount * 2);
+  const lineX = Math.round(px * amount * 1.2);
+  const lineY = Math.round(py * amount * 1.2);
+  dom.cardLayer.style.transform = `translate3d(${cardX}px, ${cardY}px, 0)`;
+  dom.connectorLayer.style.transform = `translate3d(${lineX}px, ${lineY}px, 0)`;
 }
 
 function membersForStorage() {
