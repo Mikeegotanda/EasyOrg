@@ -621,9 +621,9 @@ const dom = {
   nameWeightInput: document.getElementById('nameWeightInput'),
   roleWeightInput: document.getElementById('roleWeightInput'),
   cardRadiusInput: document.getElementById('cardRadiusInput'),
+  cardRadiusValue: document.getElementById('cardRadiusValue'),
   cardWidthScaleInput: document.getElementById('cardWidthScaleInput'),
   cardHeightScaleInput: document.getElementById('cardHeightScaleInput'),
-  cardShapeInput: document.getElementById('cardShapeInput'),
   cardLayoutInput: document.getElementById('cardLayoutInput'),
   avatarStyleInput: document.getElementById('avatarStyleInput'),
   cardElevationInput: document.getElementById('cardElevationInput'),
@@ -2341,15 +2341,6 @@ function rowLayouts() {
 }
 
 function getCardRadiusFromShape() {
-  if (state.settings.cardShape === 'square') {
-    return 4;
-  }
-  if (state.settings.cardShape === 'pill') {
-    return 999;
-  }
-  if (state.settings.cardShape === 'soft') {
-    return 18;
-  }
   return state.settings.cardRadius;
 }
 
@@ -5357,9 +5348,9 @@ function syncControls() {
   if (dom.locationFontInput) dom.locationFontInput.value = state.settings.locationFont || state.settings.cardFont || 'Arial';
   if (dom.locationColorInput) dom.locationColorInput.value = state.settings.locationColor || state.settings.cardSubColor;
   setValue(dom.cardRadiusInput, String(state.settings.cardRadius));
+  if (dom.cardRadiusValue) dom.cardRadiusValue.textContent = `${Math.round(Number(dom.cardRadiusInput?.value || state.settings.cardRadius || 0))} px`;
   setValue(dom.cardWidthScaleInput, String(state.settings.cardWidthScale ?? state.settings.cardScale ?? 100));
   setValue(dom.cardHeightScaleInput, String(state.settings.cardHeightScale ?? state.settings.cardScale ?? 100));
-  setValue(dom.cardShapeInput, state.settings.cardShape);
   setValue(dom.cardLayoutInput, state.settings.cardLayout);
   setValue(dom.avatarStyleInput, state.settings.avatarStyle);
   setValue(dom.cardElevationInput, state.settings.cardElevation);
@@ -5883,6 +5874,7 @@ function bindControlEvents() {
 
   dom.cardRadiusInput?.addEventListener('input', () => {
     state.settings.cardRadius = Number(dom.cardRadiusInput.value);
+    if (dom.cardRadiusValue) dom.cardRadiusValue.textContent = `${state.settings.cardRadius} px`;
     scheduleTypographyRefresh();
   });
 
@@ -5893,13 +5885,6 @@ function bindControlEvents() {
 
   dom.cardHeightScaleInput?.addEventListener('input', () => {
     state.settings.cardHeightScale = Number(dom.cardHeightScaleInput.value);
-    render();
-  });
-
-  dom.cardShapeInput?.addEventListener('change', () => {
-    state.settings.cardShape = dom.cardShapeInput.value;
-    state.settings.nodeStylePreset = 'custom';
-    syncControls();
     render();
   });
 

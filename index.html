@@ -500,13 +500,9 @@
           </div>
           <div class="grid-2">
             <div class="field-stack compact">
-              <label for="cardShapeInput">Card Shape</label>
-              <select id="cardShapeInput">
-                <option value="square">Square</option>
-                <option value="rounded">Rounded</option>
-                <option value="soft">Soft Rounded</option>
-                <option value="pill">Pill</option>
-              </select>
+              <label for="cardRadiusInput">Card Roundness</label>
+              <input id="cardRadiusInput" type="range" min="0" max="32" step="1" value="10" />
+              <div class="slider-meta"><span id="cardRadiusValue">10 px</span></div>
             </div>
             <div class="field-stack compact">
               <label for="cardLayoutInput">Card Layout</label>
