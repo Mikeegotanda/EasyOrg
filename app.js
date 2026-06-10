@@ -2971,6 +2971,15 @@ function pathBetweenCards(fromLayout, toLayout) {
   return `M ${fromX} ${fromY} L ${fromX} ${midY} L ${toX} ${midY} L ${toX} ${toY}`;
 }
 
+function doubleLineOffset(fromLayout, toLayout) {
+  const dx = toLayout.xCenter - fromLayout.xCenter;
+  const dy = toLayout.yCenter - fromLayout.yCenter;
+  if (Math.abs(dx) >= Math.abs(dy)) {
+    return { x: 0, y: 3 };
+  }
+  return { x: 3, y: 0 };
+}
+
 function autoLinkPairs(layouts) {
   const links = [];
   for (let rowIndex = 1; rowIndex < state.rows.length; rowIndex += 1) {
@@ -3100,8 +3109,12 @@ function renderConnectors(layouts) {
     const linejoin = typeProfile.double ? 'round' : 'round';
 
     if (typeProfile.double) {
+      const offset = doubleLineOffset(fromLayout, toLayout);
       paths.push(
-        `<path d="${d}" class="connector-line ${connectorClass}" fill="none" stroke="${stroke}" stroke-width="${width + 3}" opacity="${opacity * 0.25}" ${dashValue ? `stroke-dasharray="${dashValue}"` : ''} stroke-linecap="${linecap}" stroke-linejoin="${linejoin}" style="--connector-duration:${timings.connectorDuration}ms;--connector-delay:${delay}ms;"></path>`
+        `<path d="${d}" class="connector-line ${connectorClass}" fill="none" stroke="${stroke}" stroke-width="${Math.max(1, width - 1)}" opacity="${opacity * 0.95}" ${dashValue ? `stroke-dasharray="${dashValue}"` : ''} ${offset.x || offset.y ? `transform="translate(${offset.x}, ${offset.y})"` : ''} stroke-linecap="${linecap}" stroke-linejoin="${linejoin}" style="--connector-duration:${timings.connectorDuration}ms;--connector-delay:${delay}ms;"></path>`
+      );
+      paths.push(
+        `<path d="${d}" class="connector-line ${connectorClass}" fill="none" stroke="${stroke}" stroke-width="${Math.max(1, width - 1)}" opacity="${opacity * 0.95}" ${dashValue ? `stroke-dasharray="${dashValue}"` : ''} ${offset.x || offset.y ? `transform="translate(${-offset.x}, ${-offset.y})"` : ''} stroke-linecap="${linecap}" stroke-linejoin="${linejoin}" style="--connector-duration:${timings.connectorDuration}ms;--connector-delay:${delay}ms;"></path>`
       );
     }
 
