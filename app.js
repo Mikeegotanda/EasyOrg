@@ -495,8 +495,6 @@ const dom = {
   formatNodeStyleInput: document.getElementById('formatNodeStyleInput'),
   formatPictureUploadInput: document.getElementById('formatPictureUploadInput'),
   chartLogoInput: document.getElementById('chartLogoInput'),
-  showChartLogoInput: document.getElementById('showChartLogoInput'),
-  showChartLegendInput: document.getElementById('showChartLegendInput'),
   orgChartViewInput: document.getElementById('orgChartViewInput'),
   orgChartColorByInput: document.getElementById('orgChartColorByInput'),
   orgChartLegendInput: document.getElementById('orgChartLegendInput'),
@@ -5285,8 +5283,6 @@ function syncControls() {
   if (dom.formatNodeStyleInput) {
     dom.formatNodeStyleInput.value = state.settings.nodeStylePreset || 'visio-basic';
   }
-  if (dom.showChartLogoInput) dom.showChartLogoInput.checked = state.settings.showChartLogo !== false;
-  if (dom.showChartLegendInput) dom.showChartLegendInput.checked = state.settings.showChartLegend !== false;
   if (dom.orgChartViewInput) dom.orgChartViewInput.value = state.settings.orgChartView || 'standard';
   if (dom.orgChartColorByInput) dom.orgChartColorByInput.value = state.settings.orgChartColorBy || 'none';
   if (dom.orgChartLegendInput) dom.orgChartLegendInput.checked = state.settings.showOrgChartBadges !== false;
@@ -5467,18 +5463,6 @@ function bindControlEvents() {
     render();
     scheduleStatePersistence();
     notify('Chart logo added.');
-  });
-
-  dom.showChartLogoInput?.addEventListener('change', () => {
-    state.settings.showChartLogo = dom.showChartLogoInput.checked;
-    syncControls();
-    render();
-  });
-
-  dom.showChartLegendInput?.addEventListener('change', () => {
-    state.settings.showChartLegend = dom.showChartLegendInput.checked;
-    syncControls();
-    render();
   });
 
   dom.orgChartViewInput?.addEventListener('change', () => {
