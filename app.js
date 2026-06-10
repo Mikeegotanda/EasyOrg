@@ -37,6 +37,7 @@ const PRESETS = {
     connectorStyle: 'orthogonal',
     connectorType: 'solid',
     connectorWeight: 4,
+    connectorColor: '#8d949f',
     connectorStartMarkerScale: 1,
     connectorMarkerScale: 1,
     cardShape: 'rounded',
@@ -114,6 +115,7 @@ const PRESETS = {
     connectorStyle: 'orthogonal',
     connectorType: 'solid',
     connectorWeight: 4,
+    connectorColor: '#8d949f',
     connectorStartMarkerScale: 1,
     connectorMarkerScale: 1,
     cardShape: 'rounded',
@@ -181,6 +183,7 @@ const PRESETS = {
     connectorStyle: 'orthogonal',
     connectorType: 'solid',
     connectorWeight: 4,
+    connectorColor: '#8d949f',
     connectorStartMarkerScale: 1,
     connectorMarkerScale: 1,
     cardShape: 'pill',
@@ -248,6 +251,7 @@ const PRESETS = {
     connectorStyle: 'orthogonal',
     connectorType: 'solid',
     connectorWeight: 4,
+    connectorColor: '#8d949f',
     connectorStartMarkerScale: 1,
     connectorMarkerScale: 1,
     cardShape: 'soft',
@@ -382,6 +386,7 @@ function normalizeSettings(settings) {
   normalized.locationLineHeight = Number.isFinite(Number(normalized.locationLineHeight)) ? Number(normalized.locationLineHeight) : 1.12;
   normalized.cardFillPattern = normalized.cardFillPattern || 'none';
   normalized.cardLineStyle = normalized.cardLineStyle || 'solid';
+  normalized.connectorColor = normalized.connectorColor || normalized.accentColor || '#8d949f';
   normalized.connectorMarkerScale = Number.isFinite(Number(normalized.connectorMarkerScale)) ? Number(normalized.connectorMarkerScale) : 1;
   normalized.connectorStartMarkerScale = Number.isFinite(Number(normalized.connectorStartMarkerScale)) ? Number(normalized.connectorStartMarkerScale) : 1;
   const legacyStartPoint = normalizeConnectorMarker(normalized.connectorStartPoint || normalized.connectorDecoration);
@@ -536,6 +541,7 @@ const dom = {
   rowCountInput: document.getElementById('rowCountInput'),
   connectorStyleInput: document.getElementById('connectorStyleInput'),
   connectorTypeInput: document.getElementById('connectorTypeInput'),
+  connectorColorInput: document.getElementById('connectorColorInput'),
   connectorWeightInput: document.getElementById('connectorWeightInput'),
   connectorWeightValue: document.getElementById('connectorWeightValue'),
   connectorStartPointsInput: document.getElementById('connectorStartPointsInput'),
@@ -3128,7 +3134,7 @@ function renderConnectors(layouts) {
     if (!fromLayout || !toLayout) {
       return;
     }
-    const manualStroke = link.stroke || state.settings.accentColor;
+    const manualStroke = link.stroke || state.settings.connectorColor || state.settings.accentColor;
     const manualWidth = Math.max(1, strokeWidth + 1 + Number(link.widthOffset || 0));
     pushPath(fromLayout, toLayout, manualStroke, Math.max(manualWidth, 3), 1);
   });
@@ -3146,12 +3152,12 @@ function renderConnectors(layouts) {
   const startSquareSize = squareSize * startMarkerScale;
   const endSquareSize = squareSize * markerScale;
   const defs = `<defs>
-    <marker id="connector-arrow-start" viewBox="0 0 18 14" markerWidth="${startArrowWidth}" markerHeight="${startArrowHeight}" refX="18" refY="7" orient="auto-start-reverse" markerUnits="userSpaceOnUse"><path d="M0,0 L18,7 L0,14 z" fill="${state.settings.accentColor}"></path></marker>
-    <marker id="connector-arrow-end" viewBox="0 0 18 14" markerWidth="${endArrowWidth}" markerHeight="${endArrowHeight}" refX="18" refY="7" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L18,7 L0,14 z" fill="${state.settings.accentColor}"></path></marker>
-    <marker id="connector-dot-start" viewBox="0 0 12 12" markerWidth="${startDotSize}" markerHeight="${startDotSize}" refX="12" refY="6" orient="auto-start-reverse" markerUnits="userSpaceOnUse"><circle cx="6" cy="6" r="4" fill="${state.settings.accentColor}"></circle></marker>
-    <marker id="connector-dot-end" viewBox="0 0 12 12" markerWidth="${endDotSize}" markerHeight="${endDotSize}" refX="12" refY="6" orient="auto" markerUnits="userSpaceOnUse"><circle cx="6" cy="6" r="4" fill="${state.settings.accentColor}"></circle></marker>
-    <marker id="connector-square-start" viewBox="0 0 12 12" markerWidth="${startSquareSize}" markerHeight="${startSquareSize}" refX="12" refY="6" orient="auto-start-reverse" markerUnits="userSpaceOnUse"><rect x="3" y="3" width="6" height="6" fill="${state.settings.accentColor}"></rect></marker>
-    <marker id="connector-square-end" viewBox="0 0 12 12" markerWidth="${endSquareSize}" markerHeight="${endSquareSize}" refX="12" refY="6" orient="auto" markerUnits="userSpaceOnUse"><rect x="3" y="3" width="6" height="6" fill="${state.settings.accentColor}"></rect></marker>
+    <marker id="connector-arrow-start" viewBox="0 0 18 14" markerWidth="${startArrowWidth}" markerHeight="${startArrowHeight}" refX="18" refY="7" orient="auto-start-reverse" markerUnits="userSpaceOnUse"><path d="M0,0 L18,7 L0,14 z" fill="${state.settings.connectorColor || state.settings.accentColor}"></path></marker>
+    <marker id="connector-arrow-end" viewBox="0 0 18 14" markerWidth="${endArrowWidth}" markerHeight="${endArrowHeight}" refX="18" refY="7" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L18,7 L0,14 z" fill="${state.settings.connectorColor || state.settings.accentColor}"></path></marker>
+    <marker id="connector-dot-start" viewBox="0 0 12 12" markerWidth="${startDotSize}" markerHeight="${startDotSize}" refX="12" refY="6" orient="auto-start-reverse" markerUnits="userSpaceOnUse"><circle cx="6" cy="6" r="4" fill="${state.settings.connectorColor || state.settings.accentColor}"></circle></marker>
+    <marker id="connector-dot-end" viewBox="0 0 12 12" markerWidth="${endDotSize}" markerHeight="${endDotSize}" refX="12" refY="6" orient="auto" markerUnits="userSpaceOnUse"><circle cx="6" cy="6" r="4" fill="${state.settings.connectorColor || state.settings.accentColor}"></circle></marker>
+    <marker id="connector-square-start" viewBox="0 0 12 12" markerWidth="${startSquareSize}" markerHeight="${startSquareSize}" refX="12" refY="6" orient="auto-start-reverse" markerUnits="userSpaceOnUse"><rect x="3" y="3" width="6" height="6" fill="${state.settings.connectorColor || state.settings.accentColor}"></rect></marker>
+    <marker id="connector-square-end" viewBox="0 0 12 12" markerWidth="${endSquareSize}" markerHeight="${endSquareSize}" refX="12" refY="6" orient="auto" markerUnits="userSpaceOnUse"><rect x="3" y="3" width="6" height="6" fill="${state.settings.connectorColor || state.settings.accentColor}"></rect></marker>
   </defs>`;
   dom.connectorLayer.innerHTML = `${defs}${paths.join('')}${decorations.join('')}`;
 
@@ -5413,6 +5419,7 @@ function syncControls() {
   setValue(dom.rowCountInput, state.settings.canvasRowCount || 'auto');
   setValue(dom.connectorStyleInput, state.settings.connectorStyle);
   setValue(dom.connectorTypeInput, state.settings.connectorType);
+  setValue(dom.connectorColorInput, state.settings.connectorColor || state.settings.accentColor);
   setValue(dom.connectorWeightInput, String(connectorThicknessValue()));
   if (dom.connectorWeightValue) dom.connectorWeightValue.textContent = `${connectorThicknessValue()} px`;
   setValue(dom.connectorStartPointsInput, state.settings.connectorStartPoint || 'none');
@@ -5746,6 +5753,11 @@ function bindControlEvents() {
 
   dom.connectorTypeInput?.addEventListener('change', () => {
     state.settings.connectorType = dom.connectorTypeInput.value;
+    render();
+  });
+
+  dom.connectorColorInput?.addEventListener('input', () => {
+    state.settings.connectorColor = dom.connectorColorInput.value;
     render();
   });
 
