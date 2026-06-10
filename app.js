@@ -3111,15 +3111,15 @@ function renderConnectors(layouts) {
     if (typeProfile.double) {
       const offset = doubleLineOffset(fromLayout, toLayout);
       paths.push(
-        `<path d="${d}" class="connector-line ${connectorClass}" fill="none" stroke="${stroke}" stroke-width="${Math.max(1, width - 1)}" opacity="${opacity * 0.95}" ${dashValue ? `stroke-dasharray="${dashValue}"` : ''} ${offset.x || offset.y ? `transform="translate(${offset.x}, ${offset.y})"` : ''} stroke-linecap="${linecap}" stroke-linejoin="${linejoin}" style="--connector-duration:${timings.connectorDuration}ms;--connector-delay:${delay}ms;"></path>`
+        `<path d="${d}" class="connector-line ${connectorClass}" fill="none" stroke="${stroke}" opacity="${opacity * 0.95}" ${dashValue ? `stroke-dasharray="${dashValue}"` : ''} ${offset.x || offset.y ? `transform="translate(${offset.x}, ${offset.y})"` : ''} stroke-linecap="${linecap}" stroke-linejoin="${linejoin}" style="stroke-width:${Math.max(1, width - 1)}px; --connector-duration:${timings.connectorDuration}ms;--connector-delay:${delay}ms;"></path>`
       );
       paths.push(
-        `<path d="${d}" class="connector-line ${connectorClass}" fill="none" stroke="${stroke}" stroke-width="${Math.max(1, width - 1)}" opacity="${opacity * 0.95}" ${dashValue ? `stroke-dasharray="${dashValue}"` : ''} ${offset.x || offset.y ? `transform="translate(${-offset.x}, ${-offset.y})"` : ''} stroke-linecap="${linecap}" stroke-linejoin="${linejoin}" style="--connector-duration:${timings.connectorDuration}ms;--connector-delay:${delay}ms;"></path>`
+        `<path d="${d}" class="connector-line ${connectorClass}" fill="none" stroke="${stroke}" opacity="${opacity * 0.95}" ${dashValue ? `stroke-dasharray="${dashValue}"` : ''} ${offset.x || offset.y ? `transform="translate(${-offset.x}, ${-offset.y})"` : ''} stroke-linecap="${linecap}" stroke-linejoin="${linejoin}" style="stroke-width:${Math.max(1, width - 1)}px; --connector-duration:${timings.connectorDuration}ms;--connector-delay:${delay}ms;"></path>`
       );
     }
 
     paths.push(
-      `<path d="${d}" class="connector-line ${connectorClass}" fill="none" stroke="${stroke}" stroke-width="${width}" opacity="${opacity}" ${dashValue ? `stroke-dasharray="${dashValue}"` : ''} ${markerStart ? `marker-start="${markerStart}"` : ''} ${markerEnd ? `marker-end="${markerEnd}"` : ''} stroke-linecap="${linecap}" stroke-linejoin="${linejoin}" style="--connector-duration:${timings.connectorDuration}ms;--connector-delay:${delay}ms;"></path>`
+      `<path d="${d}" class="connector-line ${connectorClass}" fill="none" stroke="${stroke}" opacity="${opacity}" ${dashValue ? `stroke-dasharray="${dashValue}"` : ''} ${markerStart ? `marker-start="${markerStart}"` : ''} ${markerEnd ? `marker-end="${markerEnd}"` : ''} stroke-linecap="${linecap}" stroke-linejoin="${linejoin}" style="stroke-width:${width}px; --connector-duration:${timings.connectorDuration}ms;--connector-delay:${delay}ms;"></path>`
     );
   }
 
