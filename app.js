@@ -69,7 +69,6 @@ const PRESETS = {
     connectorEndPoint: 'arrow',
     connectorMarkers: 'arrow-end',
     cardVisualType: 'standard',
-    avatarTreatment: 'default',
     nodeStylePreset: 'visio-basic',
     employeeFields: {
       name: true,
@@ -148,8 +147,7 @@ const PRESETS = {
     connectorStartPoint: 'none',
     connectorEndPoint: 'arrow',
     connectorMarkers: 'arrow-end',
-    cardVisualType: 'standard',
-    avatarTreatment: 'default'
+    cardVisualType: 'standard'
   },
   corporate: {
     type: 'corporate',
@@ -218,8 +216,7 @@ const PRESETS = {
     connectorStartPoint: 'none',
     connectorEndPoint: 'arrow',
     connectorMarkers: 'arrow-end',
-    cardVisualType: 'standard',
-    avatarTreatment: 'default'
+    cardVisualType: 'standard'
   },
   introduction: {
     type: 'introduction',
@@ -289,7 +286,7 @@ const PRESETS = {
     connectorEndPoint: 'arrow',
     connectorMarkers: 'arrow-end',
     cardVisualType: 'editorial',
-    avatarTreatment: 'default'
+    avatarStyle: 'default'
   }
 };
 
@@ -2091,8 +2088,8 @@ function orgViewBadges(member, nodeId) {
 
 function cardTemplate(member, xCenter, nodeId) {
   const isRight = xCenter > 640;
-  const avatarTreatment = state.settings.avatarTreatment || 'default';
-  const showAvatar = state.settings.employeePhotos !== false && state.settings.avatarStyle !== 'hidden' && avatarTreatment !== 'hidden';
+  const avatarStyle = state.settings.avatarStyle || 'default';
+  const showAvatar = state.settings.employeePhotos !== false && avatarStyle !== 'hidden';
   const layout = state.settings.cardLayout;
   const compact = layout === 'compact';
   const widthScale = getCardWidthScaleFactor();
@@ -2103,31 +2100,25 @@ function cardTemplate(member, xCenter, nodeId) {
   const scaledT = (value, min = 0) => Math.max(min, Math.round(value * textScale));
 
   const avatarRadiusMap = {
+    default: '12px',
     circle: '50%',
     square: '4px',
     rounded: '12px',
     hidden: '0'
   };
-  let avatarRadius = avatarRadiusMap[state.settings.avatarStyle] || '12px';
-  if (avatarTreatment === 'circle') {
-    avatarRadius = '50%';
-  } else if (avatarTreatment === 'square') {
-    avatarRadius = '3px';
-  } else if (avatarTreatment === 'rounded') {
-    avatarRadius = '12px';
-  }
+  const avatarRadius = avatarRadiusMap[avatarStyle] || avatarRadiusMap.default;
   const avatarSize = scaledT(compact ? 56 : 78, 28);
   const avatarFilter =
-    avatarTreatment === 'monochrome'
+    avatarStyle === 'monochrome'
       ? 'grayscale(1) contrast(1.05)'
-      : avatarTreatment === 'duotone'
+      : avatarStyle === 'duotone'
         ? 'grayscale(1) sepia(0.75) hue-rotate(185deg) saturate(1.55)'
         : 'none';
   const avatarExtraStyle = [
     `border-radius:${avatarRadius}`,
     avatarFilter !== 'none' ? `filter:${avatarFilter}` : '',
-    avatarTreatment === 'cutout' ? 'mix-blend-mode:multiply' : '',
-    avatarTreatment === 'floating' ? 'box-shadow:0 10px 22px rgba(12,22,34,0.3);transform:translateY(-3px)' : ''
+    avatarStyle === 'cutout' ? 'mix-blend-mode:multiply' : '',
+    avatarStyle === 'floating' ? 'box-shadow:0 10px 22px rgba(12,22,34,0.3);transform:translateY(-3px)' : ''
   ]
     .filter(Boolean)
     .join(';');
@@ -2159,7 +2150,7 @@ function cardTemplate(member, xCenter, nodeId) {
     </div>
   `;
 
-  if (avatarTreatment === 'full-bleed' && showAvatar) {
+  if (avatarStyle === 'full-bleed' && showAvatar) {
     return `
       <div class="card-main full-bleed" style="position:relative;display:block;">
         <img class="card-photo" src="${member.photo}" alt="${escapeHtml(member.name)}" style="${avatarExtraStyle}" />
@@ -5112,7 +5103,6 @@ function applyFormatNodeStyle(preset) {
       cardVisualType: 'standard',
       cardLayout: 'avatar-left',
       avatarStyle: 'rounded',
-      avatarTreatment: 'default',
       cardElevation: 'flat',
       cardShape: 'rounded',
       cardRadius: 8,
@@ -5123,7 +5113,6 @@ function applyFormatNodeStyle(preset) {
       cardVisualType: 'minimal',
       cardLayout: 'compact',
       avatarStyle: 'rounded',
-      avatarTreatment: 'default',
       cardElevation: 'flat',
       cardShape: 'rounded',
       cardRadius: 6,
@@ -5136,7 +5125,6 @@ function applyFormatNodeStyle(preset) {
       cardVisualType: 'outline',
       cardLayout: 'compact',
       avatarStyle: 'hidden',
-      avatarTreatment: 'hidden',
       cardElevation: 'flat',
       cardShape: 'square',
       cardRadius: 3,
@@ -5149,7 +5137,6 @@ function applyFormatNodeStyle(preset) {
       cardVisualType: 'split',
       cardLayout: 'avatar-left',
       avatarStyle: 'circle',
-      avatarTreatment: 'default',
       cardElevation: 'soft',
       cardShape: 'rounded',
       cardRadius: 8,
@@ -5162,7 +5149,6 @@ function applyFormatNodeStyle(preset) {
       cardVisualType: 'outline',
       cardLayout: 'avatar-left',
       avatarStyle: 'square',
-      avatarTreatment: 'default',
       cardElevation: 'flat',
       cardShape: 'square',
       cardRadius: 0,
@@ -5173,7 +5159,6 @@ function applyFormatNodeStyle(preset) {
       cardVisualType: 'standard',
       cardLayout: 'avatar-top',
       avatarStyle: 'rounded',
-      avatarTreatment: 'default',
       cardElevation: 'soft',
       cardShape: 'rounded',
       cardRadius: 10,
@@ -5183,8 +5168,7 @@ function applyFormatNodeStyle(preset) {
     'teamgen-glass': {
       cardVisualType: 'glass',
       cardLayout: 'avatar-left',
-      avatarStyle: 'circle',
-      avatarTreatment: 'floating',
+      avatarStyle: 'floating',
       cardElevation: 'glass',
       cardShape: 'soft',
       cardRadius: 18,
@@ -5195,7 +5179,6 @@ function applyFormatNodeStyle(preset) {
       cardVisualType: 'filled',
       cardLayout: 'avatar-left',
       avatarStyle: 'circle',
-      avatarTreatment: 'default',
       cardElevation: 'soft',
       cardShape: 'pill',
       cardRadius: 28,
@@ -5205,8 +5188,7 @@ function applyFormatNodeStyle(preset) {
     'teamgen-blueprint': {
       cardVisualType: 'blueprint',
       cardLayout: 'compact',
-      avatarStyle: 'square',
-      avatarTreatment: 'monochrome',
+      avatarStyle: 'monochrome',
       cardElevation: 'flat',
       cardShape: 'square',
       cardRadius: 2,
@@ -5216,8 +5198,7 @@ function applyFormatNodeStyle(preset) {
     'teamgen-editorial': {
       cardVisualType: 'editorial',
       cardLayout: 'avatar-top',
-      avatarStyle: 'rounded',
-      avatarTreatment: 'full-bleed',
+      avatarStyle: 'full-bleed',
       cardElevation: 'soft',
       cardShape: 'soft',
       cardRadius: 16,
@@ -5764,16 +5745,6 @@ function bindControlEvents() {
     state.settings.cardVisualType = dom.cardVisualTypeInput.value;
     state.settings.nodeStylePreset = 'custom';
     syncControls();
-    render();
-  });
-
-  dom.avatarTreatmentInput?.addEventListener('change', () => {
-    state.settings.avatarTreatment = dom.avatarTreatmentInput.value;
-    if (state.settings.avatarTreatment === 'hidden') {
-      state.settings.avatarStyle = 'hidden';
-    } else if (state.settings.avatarStyle === 'hidden') {
-      state.settings.avatarStyle = 'rounded';
-    }
     render();
   });
 
