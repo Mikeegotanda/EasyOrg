@@ -3140,8 +3140,8 @@ function renderConnectors(layouts) {
     pushPath(fromLayout, toLayout, manualStroke, Math.max(manualWidth, 3), 1);
   });
 
-  const arrowWidth = 16;
-  const arrowHeight = 12;
+  const arrowWidth = 18;
+  const arrowHeight = 14;
   const dotSize = 12;
   const squareSize = 12;
   const startArrowWidth = arrowWidth * startMarkerScale;
@@ -3153,11 +3153,11 @@ function renderConnectors(layouts) {
   const startSquareSize = squareSize * startMarkerScale;
   const endSquareSize = squareSize * markerScale;
   const defs = `<defs>
-    <marker id="connector-arrow-start" viewBox="0 0 16 12" markerWidth="${startArrowWidth}" markerHeight="${startArrowHeight}" refX="16" refY="6" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L16,6 L0,12 z" fill="${state.settings.accentColor}"></path></marker>
-    <marker id="connector-arrow-end" viewBox="0 0 16 12" markerWidth="${endArrowWidth}" markerHeight="${endArrowHeight}" refX="16" refY="6" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L16,6 L0,12 z" fill="${state.settings.accentColor}"></path></marker>
-    <marker id="connector-dot-start" viewBox="0 0 12 12" markerWidth="${startDotSize}" markerHeight="${startDotSize}" refX="12" refY="6" orient="auto" markerUnits="userSpaceOnUse"><circle cx="6" cy="6" r="4" fill="${state.settings.accentColor}"></circle></marker>
+    <marker id="connector-arrow-start" viewBox="0 0 18 14" markerWidth="${startArrowWidth}" markerHeight="${startArrowHeight}" refX="18" refY="7" orient="auto-start-reverse" markerUnits="userSpaceOnUse"><path d="M0,0 L18,7 L0,14 z" fill="${state.settings.accentColor}"></path></marker>
+    <marker id="connector-arrow-end" viewBox="0 0 18 14" markerWidth="${endArrowWidth}" markerHeight="${endArrowHeight}" refX="18" refY="7" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L18,7 L0,14 z" fill="${state.settings.accentColor}"></path></marker>
+    <marker id="connector-dot-start" viewBox="0 0 12 12" markerWidth="${startDotSize}" markerHeight="${startDotSize}" refX="12" refY="6" orient="auto-start-reverse" markerUnits="userSpaceOnUse"><circle cx="6" cy="6" r="4" fill="${state.settings.accentColor}"></circle></marker>
     <marker id="connector-dot-end" viewBox="0 0 12 12" markerWidth="${endDotSize}" markerHeight="${endDotSize}" refX="12" refY="6" orient="auto" markerUnits="userSpaceOnUse"><circle cx="6" cy="6" r="4" fill="${state.settings.accentColor}"></circle></marker>
-    <marker id="connector-square-start" viewBox="0 0 12 12" markerWidth="${startSquareSize}" markerHeight="${startSquareSize}" refX="12" refY="6" orient="auto" markerUnits="userSpaceOnUse"><rect x="3" y="3" width="6" height="6" fill="${state.settings.accentColor}"></rect></marker>
+    <marker id="connector-square-start" viewBox="0 0 12 12" markerWidth="${startSquareSize}" markerHeight="${startSquareSize}" refX="12" refY="6" orient="auto-start-reverse" markerUnits="userSpaceOnUse"><rect x="3" y="3" width="6" height="6" fill="${state.settings.accentColor}"></rect></marker>
     <marker id="connector-square-end" viewBox="0 0 12 12" markerWidth="${endSquareSize}" markerHeight="${endSquareSize}" refX="12" refY="6" orient="auto" markerUnits="userSpaceOnUse"><rect x="3" y="3" width="6" height="6" fill="${state.settings.accentColor}"></rect></marker>
   </defs>`;
   dom.connectorLayer.innerHTML = `${defs}${paths.join('')}${decorations.join('')}`;
