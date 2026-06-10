@@ -270,6 +270,7 @@ const PRESETS = {
 };
 
 const STORAGE_KEY = 'teamgen-state-v2';
+const DRAFT_STORAGE_KEY = 'teamgen-state-draft-v1';
 const CHART_ARCHIVE_KEY = 'teamgen-chart-archive-v1';
 const WINDOW_STATE_KEY = 'teamgen-window-state-v1';
 const SERVER_STATE_ENDPOINT = '/__easyorg_state';
@@ -277,6 +278,8 @@ const HASH_STATE_PREFIX = '#easyorg-state=';
 const STATE_DB_NAME = 'teamgen-state-db';
 const STATE_DB_STORE = 'state';
 const STATE_DB_KEY = 'current';
+const MAX_SYNC_STATE_CHARS = 3_500_000;
+const MAX_WINDOW_STATE_CHARS = 750_000;
 const MAX_LIBRARY_ZIP_BYTES = 250 * 1024 * 1024;
 const CANVAS_ZOOM_MIN = 0.3;
 const CANVAS_ZOOM_MAX = 2.5;
@@ -1357,13 +1360,17 @@ function compactRows() {
   state.rows = state.rows.filter((row) => row.length > 0);
 }
 
-function addNode(memberId, x, y) {
+function addNode(memberId, x, y, options = {}) {
+  const persist = options.persist !== false;
   const existingNodeId = Object.values(state.nodes).find((node) => node.memberId === memberId)?.id || null;
   if (existingNodeId) {
     placeNodeAtPoint(existingNodeId, x, y);
     state.selectedCardId = existingNodeId;
     state.selectedMemberId = memberId;
-    render();
+    refreshCanvas(false, { centerContent: false });
+    if (persist) {
+      scheduleStatePersistence();
+    }
     return existingNodeId;
   }
   const nodeId = `n${state.nodeSequence++}`;
@@ -1371,7 +1378,10 @@ function addNode(memberId, x, y) {
   placeNodeAtPoint(nodeId, x, y);
   state.selectedCardId = nodeId;
   state.selectedMemberId = memberId;
-  render();
+  refreshCanvas(false, { centerContent: false });
+  if (persist) {
+    scheduleStatePersistence();
+  }
   return nodeId;
 }
 
@@ -1491,6 +1501,7 @@ function removeMember(memberId) {
   removeNodesForMemberIds([memberId]);
   renderLibrary();
   render();
+  scheduleFullStatePersistence();
   notify(`Removed ${member.name} from team library.`);
 }
 
@@ -1514,6 +1525,7 @@ function removeDepartment() {
   }
   renderLibrary();
   render();
+  scheduleFullStatePersistence();
   notify(`Removed department ${department} (${memberIds.length} members).`);
 }
 
@@ -1524,6 +1536,7 @@ function clearLibraryMembers() {
   clearCanvas();
   renderLibrary();
   render();
+  scheduleFullStatePersistence();
   notify('Team library cleared.');
 }
 
@@ -1790,6 +1803,89 @@ function syncTypographyPreview() {
   syncTypographySliderState();
 }
 
+function applyCardTypographyStyles() {
+  if (!dom.cardLayer) {
+    return;
+  }
+  const textScale = getCardTextScaleFactor();
+  const cardBorder = getCardBorderStyle();
+  const cardShadow = getCardShadowFromElevation();
+  const cardRadius = getCardRadiusFromShape();
+  const fillAppearance = cardFillAppearance();
+  const visual = cardVisualStyles();
+  const blurStrength = clamp(Number(state.settings.blurStrength || 10), 0, 24);
+  dom.cardLayer.querySelectorAll('.canvas-card').forEach((card) => {
+    const nodeId = card.dataset.nodeId;
+    const node = state.nodes[nodeId];
+    const member = node ? getMemberById(node.memberId) : null;
+    const colorByValue = member ? memberOrgViewValue(member, nodeId) : '';
+    const viewColor = state.settings.orgChartColorBy && state.settings.orgChartColorBy !== 'none'
+      ? colorFromValue(colorByValue)
+      : state.settings.accentColor;
+    const viewBorder = state.settings.orgChartColorBy && state.settings.orgChartColorBy !== 'none'
+      ? `${Math.max(2, Number(state.settings.outlineWidth) || 1)}px ${state.settings.cardLineStyle === 'none' ? 'solid' : state.settings.cardLineStyle || 'solid'} ${viewColor}`
+      : cardBorder;
+    card.style.fontFamily = `${state.settings.cardFont || state.settings.headingFont || 'Manrope'}, sans-serif`;
+    card.style.border = visual.border || viewBorder;
+    card.style.boxShadow = cardShadow;
+    card.style.borderRadius = `${cardRadius}px`;
+    card.style.background = visual.background || fillAppearance.background;
+    card.style.backgroundSize = !visual.background && fillAppearance.backgroundSize ? fillAppearance.backgroundSize : '';
+    card.style.backdropFilter = visual.backdrop || (
+      state.settings.cardElevation === 'glass'
+        ? `blur(${blurStrength}px) saturate(125%)`
+        : ''
+    );
+    card.style.setProperty('--card-name-color', state.settings.cardTextColor);
+    card.style.setProperty('--card-role-color', state.settings.cardSubColor);
+    card.style.setProperty('--card-view-color', viewColor);
+  });
+  dom.cardLayer.querySelectorAll('.card-name').forEach((element) => {
+    element.style.fontSize = `${Math.max(9, Math.round(state.settings.nameSize * textScale))}px`;
+    element.style.fontWeight = String(Number(state.settings.nameWeight) || 400);
+    element.style.color = state.settings.cardTextColor;
+    element.style.lineHeight = String(state.settings.nameLineHeight || 1.12);
+    element.style.letterSpacing = `${Number(state.settings.nameTracking || 0).toFixed(2)}em`;
+  });
+  dom.cardLayer.querySelectorAll('.card-role').forEach((element) => {
+    element.style.fontSize = `${Math.max(8, Math.round(state.settings.roleSize * textScale))}px`;
+    element.style.color = state.settings.cardSubColor;
+    element.style.fontWeight = String(state.settings.roleWeight || 400);
+    element.style.lineHeight = String(state.settings.roleLineHeight || 1.15);
+    element.style.letterSpacing = `${Number(state.settings.roleTracking || 0).toFixed(2)}em`;
+  });
+  [
+    ['.card-title', state.settings.headingFont || 'Arial', Math.max(10, Math.round(state.settings.headingSize * textScale * 0.34)), Number(state.settings.headingWeight) || 400, state.settings.headingLineHeight || 1.02, state.settings.headingTracking || 0, state.settings.headingColor],
+    ['.card-department', state.settings.departmentFont || state.settings.cardFont || 'Arial', Math.max(8, Math.round(state.settings.departmentSize * textScale)), Number(state.settings.departmentWeight) || 400, state.settings.departmentLineHeight || 1.12, 0, state.settings.departmentColor || state.settings.cardSubColor],
+    ['.card-email', state.settings.emailFont || state.settings.cardFont || 'Arial', Math.max(8, Math.round(state.settings.emailSize * textScale)), Number(state.settings.emailWeight) || 400, state.settings.emailLineHeight || 1.12, 0, state.settings.emailColor || state.settings.cardSubColor],
+    ['.card-location', state.settings.locationFont || state.settings.cardFont || 'Arial', Math.max(8, Math.round(state.settings.locationSize * textScale)), Number(state.settings.locationWeight) || 400, state.settings.locationLineHeight || 1.12, 0, state.settings.locationColor || state.settings.cardSubColor]
+  ].forEach(([selector, font, size, weight, lineHeight, tracking, color]) => {
+    dom.cardLayer.querySelectorAll(selector).forEach((element) => {
+      element.style.fontFamily = `${font}, sans-serif`;
+      element.style.fontSize = `${size}px`;
+      element.style.fontWeight = String(weight);
+      element.style.color = color;
+      element.style.lineHeight = String(lineHeight);
+      element.style.letterSpacing = `${Number(tracking || 0).toFixed(2)}em`;
+    });
+  });
+}
+
+let typographyPersistTimer = null;
+
+function scheduleTypographyRefresh() {
+  syncTypographyPreview();
+  applyStyleToSlide();
+  applyCardTypographyStyles();
+  if (typographyPersistTimer) {
+    clearTimeout(typographyPersistTimer);
+  }
+  typographyPersistTimer = setTimeout(() => {
+    typographyPersistTimer = null;
+    scheduleStatePersistence();
+  }, 250);
+}
+
 function syncTypographyFieldVisibility() {
   const fields = state.settings.employeeFields || {};
   const visibilityMap = {
@@ -1853,7 +1949,7 @@ function resetTypographySection(section) {
   }
   syncControls();
   render();
-  persistStateAsync();
+  scheduleStatePersistence();
 }
 
 function setSliderFill(input) {
@@ -1974,7 +2070,7 @@ function cleanupCanvasLayout() {
   compactRows();
   render();
   requestAnimationFrame(() => fitCanvasToContent(rowLayouts(), true));
-  persistStateAsync();
+  scheduleStatePersistence();
   notify('Canvas layout cleaned up.');
 }
 
@@ -3391,14 +3487,32 @@ function refreshCanvas(persist = true, options = {}) {
   }
   if (persist) {
     hasRenderedCanvasOnce = true;
-    return persistState();
+    scheduleStatePersistence();
+    return true;
   }
   hasRenderedCanvasOnce = true;
   return true;
 }
 
+let renderFrameHandle = null;
+let pendingRenderOptions = null;
+
+function renderNow(options = {}) {
+  return refreshCanvas(options.persist !== false, options);
+}
+
 function render(options = {}) {
-  return refreshCanvas(true, options);
+  pendingRenderOptions = options;
+  if (renderFrameHandle) {
+    cancelAnimationFrame(renderFrameHandle);
+  }
+  renderFrameHandle = requestAnimationFrame(() => {
+    renderFrameHandle = null;
+    const nextOptions = pendingRenderOptions || {};
+    pendingRenderOptions = null;
+    refreshCanvas(nextOptions.persist !== false, nextOptions);
+  });
+  return true;
 }
 
 function addMemberFromForm() {
@@ -3442,6 +3556,7 @@ function addMemberFromForm() {
     renderLibrary();
     notify(isEditing ? `Updated ${name}.` : `Added ${name} to library.`);
     render();
+    scheduleFullStatePersistence();
   };
 
   if (file) {
@@ -4931,7 +5046,7 @@ function applyEmployeeFieldsFromControls() {
       : 'name-only';
   syncControls();
   render();
-  persistStateAsync();
+  scheduleStatePersistence();
 }
 
 function applyOrgChartViewPreset(view) {
@@ -5184,12 +5299,22 @@ async function uploadPicturesForMembers(files) {
   }
   renderLibrary();
   render();
-  persistStateAsync();
+  scheduleFullStatePersistence();
   notify(matched ? `Uploaded ${matched} matching member pictures.` : 'No picture filenames matched member names.');
 }
 
 function syncControls() {
   populateFontSelectors();
+  const setValue = (input, value) => {
+    if (input) {
+      input.value = value;
+    }
+  };
+  const setChecked = (input, checked) => {
+    if (input) {
+      input.checked = checked;
+    }
+  };
   if (dom.formatDirectionInput) {
     dom.formatDirectionInput.value = state.settings.hierarchyDirection;
   }
@@ -5225,83 +5350,83 @@ function syncControls() {
   if (dom.fieldAddressInput) dom.fieldAddressInput.checked = fields.address === true;
   if (dom.fieldLocationInput) dom.fieldLocationInput.checked = fields.location === true;
   syncTypographyFieldVisibility();
-  dom.hierarchyDirectionInput.value = state.settings.hierarchyDirection;
-  dom.nodeSpacingInput.value = state.settings.nodeSpacing;
-  dom.rowCountInput.value = state.settings.canvasRowCount || 'auto';
-  dom.connectorStyleInput.value = state.settings.connectorStyle;
-  dom.connectorTypeInput.value = state.settings.connectorType;
-  dom.connectorWeightInput.value = state.settings.connectorWeight;
-  dom.cardEntranceAnimationInput.value = state.settings.cardEntranceAnimation || 'none';
-  dom.connectorAnimationInput.value = state.settings.connectorAnimation || 'none';
-  dom.animationSpeedInput.value = state.settings.animationSpeed || 'normal';
-  dom.layoutModeInput.value = state.settings.layoutMode || 'strict';
-  dom.formalOrganicInput.value = String(state.settings.formalOrganic ?? 20);
-  dom.symmetryDynamicInput.value = String(state.settings.symmetryDynamic ?? 18);
-  dom.structureFreeformInput.value = String(state.settings.structureFreeform ?? 14);
-  dom.shadowIntensityInput.value = String(state.settings.shadowIntensity ?? 100);
-  dom.blurStrengthInput.value = String(state.settings.blurStrength ?? 10);
-  dom.backgroundDepthInput.value = String(state.settings.backgroundDepth ?? 24);
-  dom.floatingCardsInput.checked = state.settings.floatingCards !== false;
-  dom.parallaxEnabledInput.checked = state.settings.parallaxEnabled === true;
-  dom.parallaxAmountInput.value = String(state.settings.parallaxAmount ?? 8);
-  dom.ambientGlowInput.checked = state.settings.ambientGlow === true;
-  dom.connectorVisualStyleInput.value = state.settings.connectorVisualStyle || 'default';
-  dom.connectorDecorationInput.value = state.settings.connectorDecoration || 'none';
-  dom.cardVisualTypeInput.value = state.settings.cardVisualType || 'standard';
-  dom.avatarTreatmentInput.value = state.settings.avatarTreatment || 'default';
-  dom.bgColorInput.value = state.settings.bgColor;
-  dom.bgGradientEnabledInput.checked = state.settings.bgGradientEnabled === true;
-  dom.bgGradientColor2Input.value = state.settings.bgGradientColor2 || '#dfe8f3';
-  dom.accentColorInput.value = state.settings.accentColor;
-  dom.headingSizeInput.value = String(state.settings.headingSize);
+  setValue(dom.hierarchyDirectionInput, state.settings.hierarchyDirection);
+  setValue(dom.nodeSpacingInput, state.settings.nodeSpacing);
+  setValue(dom.rowCountInput, state.settings.canvasRowCount || 'auto');
+  setValue(dom.connectorStyleInput, state.settings.connectorStyle);
+  setValue(dom.connectorTypeInput, state.settings.connectorType);
+  setValue(dom.connectorWeightInput, state.settings.connectorWeight);
+  setValue(dom.cardEntranceAnimationInput, state.settings.cardEntranceAnimation || 'none');
+  setValue(dom.connectorAnimationInput, state.settings.connectorAnimation || 'none');
+  setValue(dom.animationSpeedInput, state.settings.animationSpeed || 'normal');
+  setValue(dom.layoutModeInput, state.settings.layoutMode || 'strict');
+  setValue(dom.formalOrganicInput, String(state.settings.formalOrganic ?? 20));
+  setValue(dom.symmetryDynamicInput, String(state.settings.symmetryDynamic ?? 18));
+  setValue(dom.structureFreeformInput, String(state.settings.structureFreeform ?? 14));
+  setValue(dom.shadowIntensityInput, String(state.settings.shadowIntensity ?? 100));
+  setValue(dom.blurStrengthInput, String(state.settings.blurStrength ?? 10));
+  setValue(dom.backgroundDepthInput, String(state.settings.backgroundDepth ?? 24));
+  setChecked(dom.floatingCardsInput, state.settings.floatingCards !== false);
+  setChecked(dom.parallaxEnabledInput, state.settings.parallaxEnabled === true);
+  setValue(dom.parallaxAmountInput, String(state.settings.parallaxAmount ?? 8));
+  setChecked(dom.ambientGlowInput, state.settings.ambientGlow === true);
+  setValue(dom.connectorVisualStyleInput, state.settings.connectorVisualStyle || 'default');
+  setValue(dom.connectorDecorationInput, state.settings.connectorDecoration || 'none');
+  setValue(dom.cardVisualTypeInput, state.settings.cardVisualType || 'standard');
+  setValue(dom.avatarTreatmentInput, state.settings.avatarTreatment || 'default');
+  setValue(dom.bgColorInput, state.settings.bgColor);
+  setChecked(dom.bgGradientEnabledInput, state.settings.bgGradientEnabled === true);
+  setValue(dom.bgGradientColor2Input, state.settings.bgGradientColor2 || '#dfe8f3');
+  setValue(dom.accentColorInput, state.settings.accentColor);
+  setValue(dom.headingSizeInput, String(state.settings.headingSize));
   if (dom.headingColorInput) dom.headingColorInput.value = state.settings.headingColor;
-  dom.headingFontInput.value = state.settings.headingFont;
+  setValue(dom.headingFontInput, state.settings.headingFont);
   if (dom.cardFontInput) dom.cardFontInput.value = state.settings.cardFont || state.settings.headingFont || 'Arial';
-  dom.headingLineHeightInput.value = String(Math.round((state.settings.headingLineHeight || 1.02) * 100));
-  dom.headingTrackingInput.value = String(Math.round((state.settings.headingTracking || 0) * 100));
-  dom.headingWeightInput.value = String(state.settings.headingWeight || 0);
-  dom.cardBgInput.value = state.settings.cardBg;
+  setValue(dom.headingLineHeightInput, String(Math.round((state.settings.headingLineHeight || 1.02) * 100)));
+  setValue(dom.headingTrackingInput, String(Math.round((state.settings.headingTracking || 0) * 100)));
+  setValue(dom.headingWeightInput, String(state.settings.headingWeight || 0));
+  setValue(dom.cardBgInput, state.settings.cardBg);
   if (dom.cardTextColorInput) dom.cardTextColorInput.value = state.settings.cardTextColor;
-  dom.nameSizeInput.value = String(state.settings.nameSize);
-  dom.titleSizeInput.value = String(state.settings.roleSize);
-  dom.nameLineHeightInput.value = String(Math.round((state.settings.nameLineHeight || 1.12) * 100));
-  dom.roleLineHeightInput.value = String(Math.round((state.settings.roleLineHeight || 1.15) * 100));
-  dom.nameTrackingInput.value = String(Math.round((state.settings.nameTracking || 0) * 100));
-  dom.roleTrackingInput.value = String(Math.round((state.settings.roleTracking || 0) * 100));
-  dom.nameWeightInput.value = String(state.settings.nameWeight || 0);
-  dom.roleWeightInput.value = String(state.settings.roleWeight || 0);
+  setValue(dom.nameSizeInput, String(state.settings.nameSize));
+  setValue(dom.titleSizeInput, String(state.settings.roleSize));
+  setValue(dom.nameLineHeightInput, String(Math.round((state.settings.nameLineHeight || 1.12) * 100)));
+  setValue(dom.roleLineHeightInput, String(Math.round((state.settings.roleLineHeight || 1.15) * 100)));
+  setValue(dom.nameTrackingInput, String(Math.round((state.settings.nameTracking || 0) * 100)));
+  setValue(dom.roleTrackingInput, String(Math.round((state.settings.roleTracking || 0) * 100)));
+  setValue(dom.nameWeightInput, String(state.settings.nameWeight || 0));
+  setValue(dom.roleWeightInput, String(state.settings.roleWeight || 0));
   if (dom.departmentFontInput) dom.departmentFontInput.value = state.settings.departmentFont || state.settings.cardFont || 'Arial';
   if (dom.departmentColorInput) dom.departmentColorInput.value = state.settings.departmentColor || state.settings.cardSubColor;
   if (dom.departmentWeightInput) dom.departmentWeightInput.value = String(state.settings.departmentWeight || 0);
   if (dom.departmentSizeInput) dom.departmentSizeInput.value = String(state.settings.departmentSize || 12);
-  if (dom.departmentSizeValue) dom.departmentSizeValue.textContent = `${Math.round(Number(dom.departmentSizeInput.value || state.settings.departmentSize || 12))} px`;
+  if (dom.departmentSizeValue) dom.departmentSizeValue.textContent = `${Math.round(Number(dom.departmentSizeInput?.value || state.settings.departmentSize || 12))} px`;
   if (dom.departmentLineHeightInput) dom.departmentLineHeightInput.value = String(Math.round((state.settings.departmentLineHeight || 1.12) * 100));
-  if (dom.departmentLineHeightValue) dom.departmentLineHeightValue.textContent = `${(Number(dom.departmentLineHeightInput.value || 112) / 100).toFixed(2)}x`;
+  if (dom.departmentLineHeightValue) dom.departmentLineHeightValue.textContent = `${(Number(dom.departmentLineHeightInput?.value || 112) / 100).toFixed(2)}x`;
   if (dom.emailFontInput) dom.emailFontInput.value = state.settings.emailFont || state.settings.cardFont || 'Arial';
   if (dom.emailColorInput) dom.emailColorInput.value = state.settings.emailColor || state.settings.cardSubColor;
   if (dom.emailWeightInput) dom.emailWeightInput.value = String(state.settings.emailWeight || 0);
   if (dom.emailSizeInput) dom.emailSizeInput.value = String(state.settings.emailSize || 12);
-  if (dom.emailSizeValue) dom.emailSizeValue.textContent = `${Math.round(Number(dom.emailSizeInput.value || state.settings.emailSize || 12))} px`;
+  if (dom.emailSizeValue) dom.emailSizeValue.textContent = `${Math.round(Number(dom.emailSizeInput?.value || state.settings.emailSize || 12))} px`;
   if (dom.emailLineHeightInput) dom.emailLineHeightInput.value = String(Math.round((state.settings.emailLineHeight || 1.12) * 100));
-  if (dom.emailLineHeightValue) dom.emailLineHeightValue.textContent = `${(Number(dom.emailLineHeightInput.value || 112) / 100).toFixed(2)}x`;
+  if (dom.emailLineHeightValue) dom.emailLineHeightValue.textContent = `${(Number(dom.emailLineHeightInput?.value || 112) / 100).toFixed(2)}x`;
   if (dom.locationFontInput) dom.locationFontInput.value = state.settings.locationFont || state.settings.cardFont || 'Arial';
   if (dom.locationColorInput) dom.locationColorInput.value = state.settings.locationColor || state.settings.cardSubColor;
   if (dom.locationWeightInput) dom.locationWeightInput.value = String(state.settings.locationWeight || 0);
   if (dom.locationSizeInput) dom.locationSizeInput.value = String(state.settings.locationSize || 12);
-  if (dom.locationSizeValue) dom.locationSizeValue.textContent = `${Math.round(Number(dom.locationSizeInput.value || state.settings.locationSize || 12))} px`;
+  if (dom.locationSizeValue) dom.locationSizeValue.textContent = `${Math.round(Number(dom.locationSizeInput?.value || state.settings.locationSize || 12))} px`;
   if (dom.locationLineHeightInput) dom.locationLineHeightInput.value = String(Math.round((state.settings.locationLineHeight || 1.12) * 100));
-  if (dom.locationLineHeightValue) dom.locationLineHeightValue.textContent = `${(Number(dom.locationLineHeightInput.value || 112) / 100).toFixed(2)}x`;
-  dom.cardShadowInput.checked = state.settings.showShadow;
-  dom.cardOutlineInput.checked = state.settings.showOutline;
-  dom.cardRadiusInput.value = String(state.settings.cardRadius);
-  dom.cardWidthScaleInput.value = String(state.settings.cardWidthScale ?? state.settings.cardScale ?? 100);
-  dom.cardHeightScaleInput.value = String(state.settings.cardHeightScale ?? state.settings.cardScale ?? 100);
-  dom.cardShapeInput.value = state.settings.cardShape;
-  dom.cardLayoutInput.value = state.settings.cardLayout;
-  dom.avatarStyleInput.value = state.settings.avatarStyle;
-  dom.cardElevationInput.value = state.settings.cardElevation;
-  dom.infoVisibilityInput.value = state.settings.infoVisibility;
-  dom.autoConnectToggle.checked = state.autoConnect;
+  if (dom.locationLineHeightValue) dom.locationLineHeightValue.textContent = `${(Number(dom.locationLineHeightInput?.value || 112) / 100).toFixed(2)}x`;
+  setChecked(dom.cardShadowInput, state.settings.showShadow);
+  setChecked(dom.cardOutlineInput, state.settings.showOutline);
+  setValue(dom.cardRadiusInput, String(state.settings.cardRadius));
+  setValue(dom.cardWidthScaleInput, String(state.settings.cardWidthScale ?? state.settings.cardScale ?? 100));
+  setValue(dom.cardHeightScaleInput, String(state.settings.cardHeightScale ?? state.settings.cardScale ?? 100));
+  setValue(dom.cardShapeInput, state.settings.cardShape);
+  setValue(dom.cardLayoutInput, state.settings.cardLayout);
+  setValue(dom.avatarStyleInput, state.settings.avatarStyle);
+  setValue(dom.cardElevationInput, state.settings.cardElevation);
+  setValue(dom.infoVisibilityInput, state.settings.infoVisibility);
+  setChecked(dom.autoConnectToggle, state.autoConnect);
   syncTypographyPreview();
   syncTypographySliderState();
 }
@@ -5385,7 +5510,7 @@ function bindControlEvents() {
     state.settings.showChartLogo = true;
     syncControls();
     render();
-    persistStateAsync();
+    scheduleStatePersistence();
     notify('Chart logo added.');
   });
 
@@ -5433,8 +5558,7 @@ function bindControlEvents() {
   dom.shapeFillColorInput?.addEventListener('input', () => {
     state.settings.cardBg = dom.shapeFillColorInput.value;
     state.settings.nodeStylePreset = 'custom';
-    syncControls();
-    render();
+    scheduleTypographyRefresh();
   });
 
   dom.shapeFillPatternInput?.addEventListener('change', () => {
@@ -5447,67 +5571,57 @@ function bindControlEvents() {
   dom.shapeTextColorInput?.addEventListener('input', () => {
     state.settings.cardTextColor = dom.shapeTextColorInput.value;
     state.settings.nodeStylePreset = 'custom';
-    syncControls();
-    render();
+    scheduleTypographyRefresh();
   });
 
   dom.headingColorInput?.addEventListener('input', () => {
     state.settings.headingColor = dom.headingColorInput.value;
-    syncControls();
-    render();
+    scheduleTypographyRefresh();
   });
 
   dom.cardTextColorInput?.addEventListener('input', () => {
     state.settings.cardTextColor = dom.cardTextColorInput.value;
-    syncControls();
-    render();
+    scheduleTypographyRefresh();
   });
 
   dom.shapeSubTextColorInput?.addEventListener('input', () => {
     state.settings.cardSubColor = dom.shapeSubTextColorInput.value;
     state.settings.nodeStylePreset = 'custom';
-    syncControls();
-    render();
+    scheduleTypographyRefresh();
   });
 
   dom.departmentColorInput?.addEventListener('input', () => {
     state.settings.departmentColor = dom.departmentColorInput.value;
-    syncControls();
-    render();
+    scheduleTypographyRefresh();
   });
 
   dom.emailColorInput?.addEventListener('input', () => {
     state.settings.emailColor = dom.emailColorInput.value;
-    syncControls();
-    render();
+    scheduleTypographyRefresh();
   });
 
   dom.locationColorInput?.addEventListener('input', () => {
     state.settings.locationColor = dom.locationColorInput.value;
-    syncControls();
-    render();
+    scheduleTypographyRefresh();
   });
 
   dom.shapeFontInput?.addEventListener('change', () => {
     state.settings.cardFont = dom.shapeFontInput.value;
     state.settings.nodeStylePreset = 'custom';
-    syncControls();
-    render();
+    scheduleTypographyRefresh();
   });
 
   dom.cardFontInput?.addEventListener('change', () => {
     state.settings.cardFont = dom.cardFontInput.value;
     if (dom.shapeFontInput) dom.shapeFontInput.value = dom.cardFontInput.value;
-    syncControls();
-    render();
+    scheduleTypographyRefresh();
   });
 
   dom.shapeLineColorInput?.addEventListener('input', () => {
     state.settings.outlineColor = dom.shapeLineColorInput.value;
     state.settings.showOutline = true;
     state.settings.nodeStylePreset = 'custom';
-    syncControls();
-    render();
+    scheduleTypographyRefresh();
   });
 
   dom.shapeLineStyleInput?.addEventListener('change', () => {
@@ -5522,22 +5636,19 @@ function bindControlEvents() {
     state.settings.outlineWidth = Number(dom.shapeLineWeightInput.value);
     state.settings.showOutline = Number(dom.shapeLineWeightInput.value) > 0;
     state.settings.nodeStylePreset = 'custom';
-    syncControls();
-    render();
+    scheduleTypographyRefresh();
   });
 
   dom.shapeShadowInput?.addEventListener('change', () => {
     state.settings.showShadow = dom.shapeShadowInput.checked;
     state.settings.nodeStylePreset = 'custom';
-    syncControls();
-    render();
+    scheduleTypographyRefresh();
   });
 
   dom.shapeShadowIntensityInput?.addEventListener('input', () => {
     state.settings.shadowIntensity = Number(dom.shapeShadowIntensityInput.value);
     state.settings.nodeStylePreset = 'custom';
-    syncControls();
-    render();
+    scheduleTypographyRefresh();
   });
 
   [
@@ -5621,18 +5732,17 @@ function bindControlEvents() {
 
   dom.shadowIntensityInput?.addEventListener('input', () => {
     state.settings.shadowIntensity = Number(dom.shadowIntensityInput.value);
-    syncControls();
-    render();
+    scheduleTypographyRefresh();
   });
 
   dom.blurStrengthInput?.addEventListener('input', () => {
     state.settings.blurStrength = Number(dom.blurStrengthInput.value);
-    render();
+    scheduleTypographyRefresh();
   });
 
   dom.backgroundDepthInput?.addEventListener('input', () => {
     state.settings.backgroundDepth = Number(dom.backgroundDepthInput.value);
-    render();
+    scheduleTypographyRefresh();
   });
 
   dom.floatingCardsInput?.addEventListener('change', () => {
@@ -5656,7 +5766,7 @@ function bindControlEvents() {
 
   dom.ambientGlowInput?.addEventListener('change', () => {
     state.settings.ambientGlow = dom.ambientGlowInput.checked;
-    render();
+    scheduleTypographyRefresh();
   });
 
   dom.connectorVisualStyleInput?.addEventListener('change', () => {
@@ -5688,7 +5798,7 @@ function bindControlEvents() {
 
   dom.bgColorInput?.addEventListener('input', () => {
     state.settings.bgColor = dom.bgColorInput.value;
-    render();
+    scheduleTypographyRefresh();
   });
 
   dom.bgGradientEnabledInput?.addEventListener('change', () => {
@@ -5698,7 +5808,7 @@ function bindControlEvents() {
 
   dom.bgGradientColor2Input?.addEventListener('input', () => {
     state.settings.bgGradientColor2 = dom.bgGradientColor2Input.value;
-    render();
+    scheduleTypographyRefresh();
   });
 
   dom.accentColorInput?.addEventListener('input', () => {
@@ -5708,151 +5818,140 @@ function bindControlEvents() {
 
   dom.headingSizeInput?.addEventListener('input', () => {
     state.settings.headingSize = Number(dom.headingSizeInput.value);
-    render();
+    scheduleTypographyRefresh();
   });
 
   dom.headingFontInput?.addEventListener('change', () => {
     state.settings.headingFont = dom.headingFontInput.value;
     if (dom.cardFontInput) dom.cardFontInput.value = dom.headingFontInput.value;
     if (dom.shapeFontInput) dom.shapeFontInput.value = dom.headingFontInput.value;
-    render();
+    scheduleTypographyRefresh();
   });
 
   dom.headingWeightInput?.addEventListener('change', () => {
     state.settings.headingWeight = Number(dom.headingWeightInput.value);
     state.settings.headingBold = Number(dom.headingWeightInput.value) >= 700;
-    syncControls();
-    render();
+    scheduleTypographyRefresh();
   });
 
   dom.headingLineHeightInput?.addEventListener('input', () => {
     state.settings.headingLineHeight = Number(dom.headingLineHeightInput.value) / 100;
-    render();
+    scheduleTypographyRefresh();
   });
 
   dom.headingTrackingInput?.addEventListener('input', () => {
     state.settings.headingTracking = Number(dom.headingTrackingInput.value) / 100;
-    render();
+    scheduleTypographyRefresh();
   });
 
   dom.cardBgInput?.addEventListener('input', () => {
     state.settings.cardBg = dom.cardBgInput.value;
-    syncControls();
-    render();
+    scheduleTypographyRefresh();
   });
 
   dom.nameSizeInput?.addEventListener('input', () => {
     state.settings.nameSize = Number(dom.nameSizeInput.value);
-    render();
+    scheduleTypographyRefresh();
   });
 
   dom.titleSizeInput?.addEventListener('input', () => {
     state.settings.roleSize = Number(dom.titleSizeInput.value);
-    render();
+    scheduleTypographyRefresh();
   });
 
   dom.nameWeightInput?.addEventListener('change', () => {
     state.settings.nameWeight = Number(dom.nameWeightInput.value);
-    syncControls();
-    render();
+    scheduleTypographyRefresh();
   });
 
   dom.departmentFontInput?.addEventListener('change', () => {
     state.settings.departmentFont = dom.departmentFontInput.value;
-    render();
+    scheduleTypographyRefresh();
   });
 
   dom.departmentWeightInput?.addEventListener('change', () => {
     state.settings.departmentWeight = Number(dom.departmentWeightInput.value);
-    render();
+    scheduleTypographyRefresh();
   });
 
   dom.departmentSizeInput?.addEventListener('input', () => {
     state.settings.departmentSize = Number(dom.departmentSizeInput.value);
-    syncControls();
-    render();
+    scheduleTypographyRefresh();
   });
 
   dom.departmentLineHeightInput?.addEventListener('input', () => {
     state.settings.departmentLineHeight = Number(dom.departmentLineHeightInput.value) / 100;
-    syncControls();
-    render();
+    scheduleTypographyRefresh();
   });
 
   dom.emailFontInput?.addEventListener('change', () => {
     state.settings.emailFont = dom.emailFontInput.value;
-    render();
+    scheduleTypographyRefresh();
   });
 
   dom.emailWeightInput?.addEventListener('change', () => {
     state.settings.emailWeight = Number(dom.emailWeightInput.value);
-    render();
+    scheduleTypographyRefresh();
   });
 
   dom.emailSizeInput?.addEventListener('input', () => {
     state.settings.emailSize = Number(dom.emailSizeInput.value);
-    syncControls();
-    render();
+    scheduleTypographyRefresh();
   });
 
   dom.emailLineHeightInput?.addEventListener('input', () => {
     state.settings.emailLineHeight = Number(dom.emailLineHeightInput.value) / 100;
-    syncControls();
-    render();
+    scheduleTypographyRefresh();
   });
 
   dom.locationFontInput?.addEventListener('change', () => {
     state.settings.locationFont = dom.locationFontInput.value;
-    render();
+    scheduleTypographyRefresh();
   });
 
   dom.locationWeightInput?.addEventListener('change', () => {
     state.settings.locationWeight = Number(dom.locationWeightInput.value);
-    render();
+    scheduleTypographyRefresh();
   });
 
   dom.locationSizeInput?.addEventListener('input', () => {
     state.settings.locationSize = Number(dom.locationSizeInput.value);
-    syncControls();
-    render();
+    scheduleTypographyRefresh();
   });
 
   dom.locationLineHeightInput?.addEventListener('input', () => {
     state.settings.locationLineHeight = Number(dom.locationLineHeightInput.value) / 100;
-    syncControls();
-    render();
+    scheduleTypographyRefresh();
   });
 
   dom.roleWeightInput?.addEventListener('change', () => {
     state.settings.roleWeight = Number(dom.roleWeightInput.value);
-    syncControls();
-    render();
+    scheduleTypographyRefresh();
   });
 
   dom.nameLineHeightInput?.addEventListener('input', () => {
     state.settings.nameLineHeight = Number(dom.nameLineHeightInput.value) / 100;
-    render();
+    scheduleTypographyRefresh();
   });
 
   dom.roleLineHeightInput?.addEventListener('input', () => {
     state.settings.roleLineHeight = Number(dom.roleLineHeightInput.value) / 100;
-    render();
+    scheduleTypographyRefresh();
   });
 
   dom.nameTrackingInput?.addEventListener('input', () => {
     state.settings.nameTracking = Number(dom.nameTrackingInput.value) / 100;
-    render();
+    scheduleTypographyRefresh();
   });
 
   dom.roleTrackingInput?.addEventListener('input', () => {
     state.settings.roleTracking = Number(dom.roleTrackingInput.value) / 100;
-    render();
+    scheduleTypographyRefresh();
   });
 
   dom.cardShadowInput?.addEventListener('change', () => {
     state.settings.showShadow = dom.cardShadowInput.checked;
-    syncControls();
-    render();
+    scheduleTypographyRefresh();
   });
 
   dom.cardOutlineInput?.addEventListener('change', () => {
@@ -5860,13 +5959,12 @@ function bindControlEvents() {
     if (state.settings.showOutline && state.settings.cardLineStyle === 'none') {
       state.settings.cardLineStyle = 'solid';
     }
-    syncControls();
-    render();
+    scheduleTypographyRefresh();
   });
 
   dom.cardRadiusInput?.addEventListener('input', () => {
     state.settings.cardRadius = Number(dom.cardRadiusInput.value);
-    render();
+    scheduleTypographyRefresh();
   });
 
   dom.cardWidthScaleInput?.addEventListener('input', () => {
@@ -5929,7 +6027,7 @@ function bindControlEvents() {
   dom.redoBtn?.addEventListener('click', redoCanvasChange);
   dom.fitAllBtn?.addEventListener('click', () => {
     fitCanvasToContent(rowLayouts(), true);
-    persistStateAsync();
+    scheduleStatePersistence();
     notify('Fit chart to the canvas view.');
   });
   dom.cleanupLayoutBtn?.addEventListener('click', cleanupCanvasLayout);
@@ -5937,7 +6035,7 @@ function bindControlEvents() {
     state.showMinimap = state.showMinimap === false;
     updateToolbarViewButtons();
     updateMinimap();
-    persistStateAsync();
+    scheduleStatePersistence();
     notify(state.showMinimap ? 'Mini map shown.' : 'Mini map hidden.');
   });
   dom.toggleLegendBtn?.addEventListener('click', () => {
@@ -5948,14 +6046,14 @@ function bindControlEvents() {
     }
     syncControls();
     render();
-    persistStateAsync();
+    scheduleStatePersistence();
     notify(state.settings.showChartLegend ? 'Legend shown.' : 'Legend hidden.');
   });
   dom.toggleReportCountsBtn?.addEventListener('click', () => {
     state.settings.showReportCountBadge = !state.settings.showReportCountBadge;
     updateToolbarViewButtons();
     render();
-    persistStateAsync();
+    scheduleStatePersistence();
     notify(state.settings.showReportCountBadge ? 'Report counts shown.' : 'Report counts hidden.');
   });
   dom.clearChartBtn?.addEventListener('click', () => {
@@ -5966,7 +6064,7 @@ function bindControlEvents() {
     pushCanvasHistory();
     clearCanvas();
     render();
-    persistStateAsync();
+    scheduleStatePersistence();
     notify('Canvas cleared.');
   });
   dom.clearCanvasBtn?.addEventListener('click', () => openChartSettingsModal('new'));
@@ -6089,7 +6187,8 @@ function bindControlEvents() {
 
     const { x, y } = layerPointFromClient(event.clientX, event.clientY);
     pushCanvasHistory();
-    addNode(memberId, x, y);
+    addNode(memberId, x, y, { persist: false });
+    scheduleStatePersistence();
     notify('Card added to canvas.');
   });
 
@@ -6247,6 +6346,8 @@ function startCardDrag(event, nodeId) {
     pushCanvasHistory(dragStartSnapshot);
     placeNodeAtPoint(nodeId, x, y);
     state.draggingNodeId = null;
+    refreshCanvas(false);
+    scheduleStatePersistence();
     notify('Card moved.');
   };
 
@@ -6835,7 +6936,7 @@ function saveChartSettings() {
     notify('Chart settings updated.');
   }
 
-  persistStateAsync();
+  scheduleStatePersistence();
   closeChartSettingsModal();
 }
 
@@ -7072,9 +7173,9 @@ function deleteSavedChart(chartId) {
   notify(`Deleted ${chart.name} from the chart archive.`);
 }
 
-function buildStatePayload() {
-  return {
-    members: membersForStorage(),
+function buildStatePayload(options = {}) {
+  const includeMembers = options.includeMembers !== false;
+  const payload = {
     rows: state.rows,
     nodes: state.nodes,
     manualLinks: state.manualLinks,
@@ -7086,6 +7187,16 @@ function buildStatePayload() {
     showMinimap: state.showMinimap !== false,
     chartDetails: state.chartDetails
   };
+  if (includeMembers) {
+    payload.members = membersForStorage();
+  } else {
+    payload.partial = true;
+  }
+  return payload;
+}
+
+function estimateStoredMemberPhotoChars() {
+  return state.members.reduce((total, member) => total + String(member.photo || '').length, 0);
 }
 
 function getWindowStatePayload() {
@@ -7096,6 +7207,10 @@ function getWindowStatePayload() {
   if (!raw.startsWith(`${WINDOW_STATE_KEY}:`)) {
     return null;
   }
+  if (raw.length > MAX_WINDOW_STATE_CHARS) {
+    window.name = '';
+    return null;
+  }
   try {
     return JSON.parse(atob(raw.slice(WINDOW_STATE_KEY.length + 1)));
   } catch (error) {
@@ -7104,12 +7219,19 @@ function getWindowStatePayload() {
   }
 }
 
-function setWindowStatePayload(payload) {
+function setWindowStatePayload(payload, serialized = '') {
   if (typeof window === 'undefined') {
     return false;
   }
   try {
-    window.name = `${WINDOW_STATE_KEY}:${btoa(JSON.stringify(payload))}`;
+    const stateString = serialized || JSON.stringify(payload);
+    if (stateString.length > MAX_WINDOW_STATE_CHARS) {
+      if ((window.name || '').startsWith(`${WINDOW_STATE_KEY}:`)) {
+        window.name = '';
+      }
+      return false;
+    }
+    window.name = `${WINDOW_STATE_KEY}:${btoa(stateString)}`;
     return true;
   } catch (error) {
     console.warn('Could not write window.name state.', error);
@@ -7174,6 +7296,29 @@ function setStoredStateString(value) {
     return true;
   } catch (error) {
     console.warn('Could not write localStorage state.', error);
+    return false;
+  }
+}
+
+function getStoredDraftPayload() {
+  try {
+    const raw = typeof localStorage !== 'undefined' ? localStorage.getItem(DRAFT_STORAGE_KEY) : null;
+    return raw ? JSON.parse(raw) : null;
+  } catch (error) {
+    console.warn('Could not read local draft state.', error);
+    return null;
+  }
+}
+
+function setStoredDraftPayload(payload) {
+  try {
+    if (typeof localStorage === 'undefined') {
+      return false;
+    }
+    localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(payload));
+    return true;
+  } catch (error) {
+    console.warn('Could not write local draft state.', error);
     return false;
   }
 }
@@ -7289,125 +7434,186 @@ function markStateStoredInIndexedDb() {
   }
 }
 
-async function persistStateAsync() {
-  const payload = buildStatePayload();
-  let savedToWindow = false;
-  let savedToHash = setStateInHash(payload);
-  if (setStoredStateString(JSON.stringify(payload))) {
-    savedToWindow = setWindowStatePayload(payload);
-    return true;
+let statePersistTimer = null;
+let fullStatePersistTimer = null;
+
+function runWhenIdle(callback, timeout = 2000) {
+  if (typeof requestIdleCallback === 'function') {
+    requestIdleCallback(callback, { timeout });
+  } else {
+    setTimeout(callback, 0);
+  }
+}
+
+function persistDraftState() {
+  const payload = buildStatePayload({ includeMembers: false });
+  return setStoredDraftPayload(payload);
+}
+
+function scheduleStatePersistence(delay = 1000) {
+  if (statePersistTimer) {
+    clearTimeout(statePersistTimer);
+  }
+  statePersistTimer = setTimeout(() => {
+    statePersistTimer = null;
+    runWhenIdle(() => persistDraftState(), 1500);
+  }, delay);
+  return true;
+}
+
+function scheduleFullStatePersistence(delay = 1500) {
+  if (fullStatePersistTimer) {
+    clearTimeout(fullStatePersistTimer);
+  }
+  fullStatePersistTimer = setTimeout(() => {
+    fullStatePersistTimer = null;
+    runWhenIdle(() => persistStateAsync({ includeMembers: true }), 2500);
+  }, delay);
+  return true;
+}
+
+async function persistStateAsync(options = {}) {
+  const includeMembers = options.includeMembers !== false;
+  if (!includeMembers) {
+    return persistDraftState();
+  }
+
+  const payload = buildStatePayload({ includeMembers: true });
+  const hasLargeLibrary = estimateStoredMemberPhotoChars() > MAX_SYNC_STATE_CHARS;
+  let serialized = '';
+
+  persistDraftState();
+
+  if (!hasLargeLibrary) {
+    serialized = JSON.stringify(payload);
+    if (serialized.length <= MAX_SYNC_STATE_CHARS && setStoredStateString(serialized)) {
+      setWindowStatePayload(payload, serialized);
+      return true;
+    }
   }
 
   try {
     await saveStateToIndexedDb(payload);
     markStateStoredInIndexedDb();
-    savedToWindow = setWindowStatePayload(payload);
+    if (!hasLargeLibrary && serialized) {
+      setWindowStatePayload(payload, serialized);
+    }
     return true;
   } catch (dbError) {
     console.warn('Could not save TeamGen state to IndexedDB.', dbError);
   }
 
-  const serverSaved = await saveStateToServer(payload);
-  if (serverSaved) {
-    setWindowStatePayload(payload);
-    savedToHash = setStateInHash(payload) || savedToHash;
-    return true;
+  if (!hasLargeLibrary && options.allowServerFallback !== false) {
+    const serverSaved = await saveStateToServer(payload);
+    if (serverSaved) {
+      setWindowStatePayload(payload, serialized);
+      return true;
+    }
   }
 
-  return setWindowStatePayload(payload) || savedToWindow || savedToHash;
+  return !hasLargeLibrary && setWindowStatePayload(payload, serialized);
 }
 
 function persistState() {
-  const payload = buildStatePayload();
-  const savedToHash = setStateInHash(payload);
-  if (setStoredStateString(JSON.stringify(payload))) {
-    setWindowStatePayload(payload);
-    return true;
-  }
-  console.warn('Could not save TeamGen state to localStorage; saving to IndexedDB in the background.');
-  setWindowStatePayload(payload);
-  setStateInHash(payload);
-  saveStateToIndexedDb(payload)
-    .then(markStateStoredInIndexedDb)
-    .catch((dbError) => console.warn('Could not save TeamGen state to IndexedDB.', dbError));
-  saveStateToServer(payload).catch((error) => console.warn('Could not save TeamGen state to the local server.', error));
-  return savedToHash;
+  return scheduleStatePersistence();
 }
 
 function applyStatePayload(parsed) {
-  state.members = parsed.members.map((member, index) => ({
-    ...member,
-    photo: String(member.photo || '').startsWith('blob:')
-      ? createAvatar(member.name, index + 1)
-      : member.photo || createAvatar(member.name, index + 1)
-  }));
-  state.rows = parsed.rows || [];
-  state.nodes = parsed.nodes || {};
-  state.manualLinks = parsed.manualLinks || [];
+  if (Array.isArray(parsed.members)) {
+    state.members = parsed.members.map((member, index) => ({
+      ...member,
+      photo: String(member.photo || '').startsWith('blob:')
+        ? createAvatar(member.name, index + 1)
+        : member.photo || createAvatar(member.name, index + 1)
+    }));
+  }
+  state.rows = Array.isArray(parsed.rows) ? parsed.rows : state.rows;
+  state.nodes = parsed.nodes && typeof parsed.nodes === 'object' ? parsed.nodes : state.nodes;
+  state.manualLinks = Array.isArray(parsed.manualLinks) ? parsed.manualLinks : state.manualLinks;
   state.selectedCardId = null;
-  state.nodeSequence = parsed.nodeSequence || 1;
-  state.settings = normalizeSettings(parsed.settings);
-  state.autoConnect = parsed.autoConnect !== false;
-  state.canvasBoardWidth = Number(parsed.canvasBoardWidth) || null;
-  state.canvasBoardHeight = Number(parsed.canvasBoardHeight) || null;
-  state.showMinimap = parsed.showMinimap !== false;
-  state.chartDetails = normalizeChartDetails(parsed.chartDetails);
+  state.nodeSequence = parsed.nodeSequence || state.nodeSequence || 1;
+  if (parsed.settings) {
+    state.settings = normalizeSettings(parsed.settings);
+  }
+  if ('autoConnect' in parsed) {
+    state.autoConnect = parsed.autoConnect !== false;
+  }
+  if ('canvasBoardWidth' in parsed) {
+    state.canvasBoardWidth = Number(parsed.canvasBoardWidth) || null;
+  }
+  if ('canvasBoardHeight' in parsed) {
+    state.canvasBoardHeight = Number(parsed.canvasBoardHeight) || null;
+  }
+  if ('showMinimap' in parsed) {
+    state.showMinimap = parsed.showMinimap !== false;
+  }
+  if (parsed.chartDetails) {
+    state.chartDetails = normalizeChartDetails(parsed.chartDetails);
+  }
 }
 
-function isValidStatePayload(payload) {
-  return Boolean(payload && payload.settings && Array.isArray(payload.members));
+function isValidStatePayload(payload, options = {}) {
+  if (!payload || !payload.settings) {
+    return false;
+  }
+  if (Array.isArray(payload.members)) {
+    return true;
+  }
+  return options.allowPartial === true && payload.partial === true;
 }
 
-async function restoreState() {
-  const hashState = decodeStateFromHash();
-  if (isValidStatePayload(hashState)) {
-    applyStatePayload(hashState);
-    return;
+async function loadFullStatePayload() {
+  const stored = getStoredStateString();
+  if (stored) {
+    try {
+      const parsed = JSON.parse(stored);
+      if (parsed?.storage === 'indexeddb') {
+        const indexedState = await loadStateFromIndexedDb();
+        if (isValidStatePayload(indexedState)) {
+          return indexedState;
+        }
+      } else if (isValidStatePayload(parsed)) {
+        return parsed;
+      }
+    } catch (error) {
+      console.warn('Could not parse local state.', error);
+    }
+  }
+
+  const indexedState = await loadStateFromIndexedDb().catch((error) => {
+    console.warn('Could not read IndexedDB state.', error);
+    return null;
+  });
+  if (isValidStatePayload(indexedState)) {
+    return indexedState;
   }
 
   const windowState = getWindowStatePayload();
   if (isValidStatePayload(windowState)) {
-    applyStatePayload(windowState);
-    return;
+    return windowState;
   }
 
   const serverState = await loadStateFromServer();
   if (isValidStatePayload(serverState)) {
-    applyStatePayload(serverState);
-    return;
+    return serverState;
   }
 
-  const stored = getStoredStateString();
-  if (!stored) {
-    const indexedState = await loadStateFromIndexedDb().catch((error) => {
-      console.warn('Could not read IndexedDB state.', error);
-      return null;
-    });
-    if (isValidStatePayload(indexedState)) {
-      applyStatePayload(indexedState);
+  return null;
+}
+
+async function restoreState() {
+  try {
+    const fullState = await loadFullStatePayload();
+    if (isValidStatePayload(fullState)) {
+      applyStatePayload(fullState);
     } else {
       seedInitialLayout();
     }
-    return;
-  }
 
-  try {
-    const parsed = JSON.parse(stored);
-    if (parsed?.storage === 'indexeddb') {
-      const indexedState = await loadStateFromIndexedDb();
-      if (isValidStatePayload(indexedState)) {
-        applyStatePayload(indexedState);
-      } else {
-        seedInitialLayout();
-      }
-      return;
+    const draftState = getStoredDraftPayload();
+    if (isValidStatePayload(draftState, { allowPartial: true })) {
+      applyStatePayload(draftState);
     }
-    if (!isValidStatePayload(parsed)) {
-      seedInitialLayout();
-      return;
-    }
-
-    applyStatePayload(parsed);
   } catch (error) {
     console.error(error);
     seedInitialLayout();
@@ -7438,10 +7644,10 @@ async function boot() {
   renderChartArchive();
   syncControls();
   setTopbarView('canvas');
-  if (window.location.hash) {
+  if (window.location.hash && window.history?.replaceState) {
     window.history.replaceState(null, '', window.location.pathname + window.location.search);
   }
-  render();
+  render({ persist: false });
   scalePreview();
   fitCanvasOnOpen();
   notify('Ready. Drag members to build your org chart slide.');
@@ -7455,7 +7661,7 @@ boot().catch((error) => {
   renderLibrary();
   renderChartArchive();
   syncControls();
-  render();
+  render({ persist: false });
   scalePreview();
   fitCanvasOnOpen();
   notify('Ready. Drag members to build your org chart slide.');
