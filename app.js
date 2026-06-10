@@ -552,7 +552,6 @@ const dom = {
   cardEntranceAnimationInput: document.getElementById('cardEntranceAnimationInput'),
   connectorAnimationInput: document.getElementById('connectorAnimationInput'),
   animationSpeedInput: document.getElementById('animationSpeedInput'),
-  layoutModeInput: document.getElementById('layoutModeInput'),
   structureFreeformInput: document.getElementById('structureFreeformInput'),
   shadowIntensityInput: document.getElementById('shadowIntensityInput'),
   blurStrengthInput: document.getElementById('blurStrengthInput'),
@@ -5303,7 +5302,6 @@ function syncControls() {
   setValue(dom.cardEntranceAnimationInput, state.settings.cardEntranceAnimation || 'none');
   setValue(dom.connectorAnimationInput, state.settings.connectorAnimation || 'none');
   setValue(dom.animationSpeedInput, state.settings.animationSpeed || 'normal');
-  setValue(dom.layoutModeInput, state.settings.layoutMode || 'strict');
   setValue(dom.structureFreeformInput, String(state.settings.structureFreeform ?? 14));
   setValue(dom.shadowIntensityInput, String(state.settings.shadowIntensity ?? 100));
   setValue(dom.blurStrengthInput, String(state.settings.blurStrength ?? 10));
@@ -5636,12 +5634,6 @@ function bindControlEvents() {
 
   dom.animationSpeedInput?.addEventListener('change', () => {
     state.settings.animationSpeed = dom.animationSpeedInput.value;
-    render();
-  });
-
-  dom.layoutModeInput?.addEventListener('change', () => {
-    state.settings.layoutMode = dom.layoutModeInput.value;
-    syncControls();
     render();
   });
 
