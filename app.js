@@ -623,7 +623,9 @@ const dom = {
   cardRadiusInput: document.getElementById('cardRadiusInput'),
   cardRadiusValue: document.getElementById('cardRadiusValue'),
   cardWidthScaleInput: document.getElementById('cardWidthScaleInput'),
+  cardWidthScaleValue: document.getElementById('cardWidthScaleValue'),
   cardHeightScaleInput: document.getElementById('cardHeightScaleInput'),
+  cardHeightScaleValue: document.getElementById('cardHeightScaleValue'),
   cardLayoutInput: document.getElementById('cardLayoutInput'),
   avatarStyleInput: document.getElementById('avatarStyleInput'),
   cardElevationInput: document.getElementById('cardElevationInput'),
@@ -2570,7 +2572,7 @@ function renderCards(layouts) {
         `height:${layout.height}px`,
         `border:${visual.border || viewBorder}`,
         `box-shadow:${cardShadow}`,
-        `border-radius:${cardRadius}px`,
+        `border-radius:${cardRadius}%`,
         `font-family:${state.settings.cardFont || state.settings.headingFont || 'Manrope'}, sans-serif`,
         `--enter-duration:${timings.cardDuration}ms`,
         `--enter-delay:${animationDelay}ms`,
@@ -5364,9 +5366,11 @@ function syncControls() {
   if (dom.locationFontInput) dom.locationFontInput.value = state.settings.locationFont || state.settings.cardFont || 'Arial';
   if (dom.locationColorInput) dom.locationColorInput.value = state.settings.locationColor || state.settings.cardSubColor;
   setValue(dom.cardRadiusInput, String(state.settings.cardRadius));
-  if (dom.cardRadiusValue) dom.cardRadiusValue.textContent = `${Math.round(Number(dom.cardRadiusInput?.value || state.settings.cardRadius || 0))} px`;
+  if (dom.cardRadiusValue) dom.cardRadiusValue.textContent = `${Math.round(Number(dom.cardRadiusInput?.value || state.settings.cardRadius || 0))}%`;
   setValue(dom.cardWidthScaleInput, String(state.settings.cardWidthScale ?? state.settings.cardScale ?? 100));
+  if (dom.cardWidthScaleValue) dom.cardWidthScaleValue.textContent = `${Math.round(Number(dom.cardWidthScaleInput?.value || state.settings.cardWidthScale || state.settings.cardScale || 100))}%`;
   setValue(dom.cardHeightScaleInput, String(state.settings.cardHeightScale ?? state.settings.cardScale ?? 100));
+  if (dom.cardHeightScaleValue) dom.cardHeightScaleValue.textContent = `${Math.round(Number(dom.cardHeightScaleInput?.value || state.settings.cardHeightScale || state.settings.cardScale || 100))}%`;
   setValue(dom.cardLayoutInput, state.settings.cardLayout);
   setValue(dom.avatarStyleInput, state.settings.avatarStyle);
   setValue(dom.cardElevationInput, String(getElevationSliderValue(state.settings.cardElevation)));
@@ -5891,17 +5895,19 @@ function bindControlEvents() {
 
   dom.cardRadiusInput?.addEventListener('input', () => {
     state.settings.cardRadius = Number(dom.cardRadiusInput.value);
-    if (dom.cardRadiusValue) dom.cardRadiusValue.textContent = `${state.settings.cardRadius} px`;
+    if (dom.cardRadiusValue) dom.cardRadiusValue.textContent = `${state.settings.cardRadius}%`;
     scheduleTypographyRefresh();
   });
 
   dom.cardWidthScaleInput?.addEventListener('input', () => {
     state.settings.cardWidthScale = Number(dom.cardWidthScaleInput.value);
+    if (dom.cardWidthScaleValue) dom.cardWidthScaleValue.textContent = `${state.settings.cardWidthScale}%`;
     render();
   });
 
   dom.cardHeightScaleInput?.addEventListener('input', () => {
     state.settings.cardHeightScale = Number(dom.cardHeightScaleInput.value);
+    if (dom.cardHeightScaleValue) dom.cardHeightScaleValue.textContent = `${state.settings.cardHeightScale}%`;
     render();
   });
 
