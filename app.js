@@ -42,7 +42,7 @@ const PRESETS = {
     connectorEndColor: '#8d949f',
     connectorStartMarkerScale: 1,
     connectorMarkerScale: 1,
-    cardShape: 'rectangle',
+    cardShape: 'rounded',
     cardLayout: 'avatar-left',
     avatarStyle: 'rounded',
     cardElevation: 'soft',
@@ -121,7 +121,7 @@ const PRESETS = {
     connectorEndColor: '#8d949f',
     connectorStartMarkerScale: 1,
     connectorMarkerScale: 1,
-    cardShape: 'rectangle',
+    cardShape: 'rounded',
     cardLayout: 'avatar-left',
     avatarStyle: 'rounded',
     cardElevation: 'soft',
@@ -190,7 +190,7 @@ const PRESETS = {
     connectorEndColor: '#8d949f',
     connectorStartMarkerScale: 1,
     connectorMarkerScale: 1,
-    cardShape: 'circle',
+    cardShape: 'pill',
     cardLayout: 'avatar-left',
     avatarStyle: 'circle',
     cardElevation: 'soft',
@@ -259,7 +259,7 @@ const PRESETS = {
     connectorEndColor: '#8d949f',
     connectorStartMarkerScale: 1,
     connectorMarkerScale: 1,
-    cardShape: 'tall-badge',
+    cardShape: 'soft',
     cardLayout: 'avatar-top',
     avatarStyle: 'rounded',
     cardElevation: 'flat',
@@ -2335,28 +2335,17 @@ function rowLayouts() {
   return layouts;
 }
 
-function applyCardShapePreset(shape) {
-  const presets = {
-    square: { cardWidthScale: 100, cardHeightScale: 100, cardRadius: 0, cardShape: 'square' },
-    rectangle: { cardWidthScale: 132, cardHeightScale: 96, cardRadius: 8, cardShape: 'rectangle' },
-    'tall-badge': { cardWidthScale: 84, cardHeightScale: 140, cardRadius: 18, cardShape: 'tall-badge' },
-    circle: { cardWidthScale: 100, cardHeightScale: 100, cardRadius: 50, cardShape: 'circle' }
-  };
-  return presets[shape] || presets.rectangle;
-}
-
-function normalizeCardShapeName(shape) {
-  const aliases = {
-    rounded: 'rectangle',
-    soft: 'tall-badge',
-    pill: 'circle'
-  };
-  const normalized = String(shape || '').trim();
-  return aliases[normalized] || normalized || 'rectangle';
-}
-
 function getCardRadiusFromShape() {
-  return applyCardShapePreset(normalizeCardShapeName(state.settings.cardShape || 'rectangle')).cardRadius;
+  if (state.settings.cardShape === 'square') {
+    return 4;
+  }
+  if (state.settings.cardShape === 'pill') {
+    return 999;
+  }
+  if (state.settings.cardShape === 'soft') {
+    return 18;
+  }
+  return state.settings.cardRadius;
 }
 
 function getCardShadowFromElevation() {
@@ -5125,7 +5114,7 @@ function applyFormatNodeStyle(preset) {
       cardLayout: 'avatar-left',
       avatarStyle: 'rounded',
       cardElevation: 'flat',
-      cardShape: 'rectangle',
+      cardShape: 'rounded',
       cardRadius: 8,
       showOutline: true,
       showShadow: false
@@ -5135,7 +5124,7 @@ function applyFormatNodeStyle(preset) {
       cardLayout: 'compact',
       avatarStyle: 'rounded',
       cardElevation: 'flat',
-      cardShape: 'rectangle',
+      cardShape: 'rounded',
       cardRadius: 6,
       cardWidthScale: 82,
       cardHeightScale: 86,
@@ -5159,7 +5148,7 @@ function applyFormatNodeStyle(preset) {
       cardLayout: 'avatar-left',
       avatarStyle: 'circle',
       cardElevation: 'soft',
-      cardShape: 'rectangle',
+      cardShape: 'rounded',
       cardRadius: 8,
       cardWidthScale: 96,
       cardHeightScale: 96,
@@ -5181,7 +5170,7 @@ function applyFormatNodeStyle(preset) {
       cardLayout: 'avatar-top',
       avatarStyle: 'rounded',
       cardElevation: 'soft',
-      cardShape: 'rectangle',
+      cardShape: 'rounded',
       cardRadius: 10,
       showOutline: true,
       showShadow: true
@@ -5191,7 +5180,7 @@ function applyFormatNodeStyle(preset) {
       cardLayout: 'avatar-left',
       avatarStyle: 'floating',
       cardElevation: 'glass',
-      cardShape: 'tall-badge',
+      cardShape: 'soft',
       cardRadius: 18,
       showOutline: true,
       showShadow: true
@@ -5201,7 +5190,7 @@ function applyFormatNodeStyle(preset) {
       cardLayout: 'avatar-left',
       avatarStyle: 'circle',
       cardElevation: 'soft',
-      cardShape: 'circle',
+      cardShape: 'pill',
       cardRadius: 28,
       showOutline: false,
       showShadow: true
@@ -5221,7 +5210,7 @@ function applyFormatNodeStyle(preset) {
       cardLayout: 'avatar-top',
       avatarStyle: 'full-bleed',
       cardElevation: 'soft',
-      cardShape: 'tall-badge',
+      cardShape: 'soft',
       cardRadius: 16,
       showOutline: true,
       showShadow: true
@@ -5262,7 +5251,6 @@ async function uploadPicturesForMembers(files) {
 
 function syncControls() {
   populateFontSelectors();
-  Object.assign(state.settings, applyCardShapePreset(normalizeCardShapeName(state.settings.cardShape || 'rectangle')));
   const setValue = (input, value) => {
     if (input) {
       input.value = value;
@@ -5375,7 +5363,7 @@ function syncControls() {
   if (dom.emailLineHeightValue) dom.emailLineHeightValue.textContent = `${(Number(dom.emailLineHeightInput?.value || 112) / 100).toFixed(2)}x`;
   if (dom.locationFontInput) dom.locationFontInput.value = state.settings.locationFont || state.settings.cardFont || 'Arial';
   if (dom.locationColorInput) dom.locationColorInput.value = state.settings.locationColor || state.settings.cardSubColor;
-  setValue(dom.cardShapeInput, normalizeCardShapeName(state.settings.cardShape || 'rectangle'));
+  setValue(dom.cardShapeInput, state.settings.cardShape || 'rounded');
   setValue(dom.cardLayoutInput, state.settings.cardLayout);
   setValue(dom.avatarStyleInput, state.settings.avatarStyle);
   setValue(dom.cardElevationInput, String(getElevationSliderValue(state.settings.cardElevation)));
@@ -5880,8 +5868,7 @@ function bindControlEvents() {
   });
 
   dom.cardShapeInput?.addEventListener('change', () => {
-    const preset = applyCardShapePreset(dom.cardShapeInput.value);
-    Object.assign(state.settings, preset);
+    state.settings.cardShape = dom.cardShapeInput.value;
     state.settings.nodeStylePreset = 'custom';
     syncControls();
     render();
@@ -7523,6 +7510,7 @@ boot().catch((error) => {
   fitCanvasOnOpen();
   notify('Ready. Drag members to build your org chart slide.');
 });
+
 
 
 
