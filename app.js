@@ -60,7 +60,6 @@ const PRESETS = {
     structureFreeform: 14,
     shadowIntensity: 100,
     blurStrength: 10,
-    backgroundDepth: 0,
     ambientGlow: false,
     connectorStartPoint: 'none',
     connectorEndPoint: 'arrow',
@@ -136,7 +135,6 @@ const PRESETS = {
     structureFreeform: 14,
     shadowIntensity: 100,
     blurStrength: 10,
-    backgroundDepth: 0,
     ambientGlow: false,
     connectorStartPoint: 'none',
     connectorEndPoint: 'arrow',
@@ -202,7 +200,6 @@ const PRESETS = {
     structureFreeform: 18,
     shadowIntensity: 112,
     blurStrength: 10,
-    backgroundDepth: 0,
     ambientGlow: false,
     connectorStartPoint: 'none',
     connectorEndPoint: 'arrow',
@@ -268,7 +265,6 @@ const PRESETS = {
     structureFreeform: 30,
     shadowIntensity: 78,
     blurStrength: 6,
-    backgroundDepth: 0,
     ambientGlow: false,
     connectorStartPoint: 'none',
     connectorEndPoint: 'arrow',
@@ -550,7 +546,6 @@ const dom = {
   structureFreeformInput: document.getElementById('structureFreeformInput'),
   shadowIntensityInput: document.getElementById('shadowIntensityInput'),
   blurStrengthInput: document.getElementById('blurStrengthInput'),
-  backgroundDepthInput: document.getElementById('backgroundDepthInput'),
   connectorMarkersInput: document.getElementById('connectorMarkersInput'),
   cardVisualTypeInput: document.getElementById('cardVisualTypeInput'),
   bgColorInput: document.getElementById('bgColorInput'),
@@ -3072,18 +3067,10 @@ function updateHeaderHeight() {
 function applySlideBackgroundLayers() {
   const bg = state.settings.bgColor || '#ffffff';
   const gradientColor2 = state.settings.bgGradientColor2 || '#dfe8f3';
-  const depth = clamp(Number(state.settings.backgroundDepth || 0) / 100, 0, 1);
   const images = [];
   const sizes = [];
   const positions = [];
   const repeats = [];
-
-  if (depth > 0) {
-    images.push(`radial-gradient(1000px 480px at 50% -20%, rgba(255,255,255,${0.28 + depth * 0.24}), rgba(255,255,255,0))`);
-    sizes.push('auto');
-    positions.push('center top');
-    repeats.push('no-repeat');
-  }
 
   if (state.settings.bgGradientEnabled) {
     images.push(`linear-gradient(155deg, ${withAlpha(bg, '26')} 0%, ${withAlpha(gradientColor2, 'B8')} 100%)`);
@@ -5313,7 +5300,6 @@ function syncControls() {
   setValue(dom.structureFreeformInput, String(state.settings.structureFreeform ?? 14));
   setValue(dom.shadowIntensityInput, String(state.settings.shadowIntensity ?? 100));
   setValue(dom.blurStrengthInput, String(state.settings.blurStrength ?? 10));
-  setValue(dom.backgroundDepthInput, String(state.settings.backgroundDepth ?? 24));
   setValue(dom.connectorStartPointsInput, state.settings.connectorStartPoint || 'none');
   setValue(dom.connectorMarkersInput, state.settings.connectorEndPoint || 'none');
   setValue(dom.connectorStartMarkerScaleInput, String(state.settings.connectorStartMarkerScale ?? 1));
@@ -5694,11 +5680,6 @@ function bindControlEvents() {
 
   dom.blurStrengthInput?.addEventListener('input', () => {
     state.settings.blurStrength = Number(dom.blurStrengthInput.value);
-    scheduleTypographyRefresh();
-  });
-
-  dom.backgroundDepthInput?.addEventListener('input', () => {
-    state.settings.backgroundDepth = Number(dom.backgroundDepthInput.value);
     scheduleTypographyRefresh();
   });
 
