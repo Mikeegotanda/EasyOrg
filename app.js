@@ -624,8 +624,6 @@ const dom = {
   roleTrackingValue: document.getElementById('roleTrackingValue'),
   nameWeightInput: document.getElementById('nameWeightInput'),
   roleWeightInput: document.getElementById('roleWeightInput'),
-  cardShadowInput: document.getElementById('cardShadowInput'),
-  cardOutlineInput: document.getElementById('cardOutlineInput'),
   cardRadiusInput: document.getElementById('cardRadiusInput'),
   cardWidthScaleInput: document.getElementById('cardWidthScaleInput'),
   cardHeightScaleInput: document.getElementById('cardHeightScaleInput'),
@@ -5379,8 +5377,6 @@ function syncControls() {
   if (dom.emailLineHeightValue) dom.emailLineHeightValue.textContent = `${(Number(dom.emailLineHeightInput?.value || 112) / 100).toFixed(2)}x`;
   if (dom.locationFontInput) dom.locationFontInput.value = state.settings.locationFont || state.settings.cardFont || 'Arial';
   if (dom.locationColorInput) dom.locationColorInput.value = state.settings.locationColor || state.settings.cardSubColor;
-  setChecked(dom.cardShadowInput, state.settings.showShadow);
-  setChecked(dom.cardOutlineInput, state.settings.showOutline);
   setValue(dom.cardRadiusInput, String(state.settings.cardRadius));
   setValue(dom.cardWidthScaleInput, String(state.settings.cardWidthScale ?? state.settings.cardScale ?? 100));
   setValue(dom.cardHeightScaleInput, String(state.settings.cardHeightScale ?? state.settings.cardScale ?? 100));
@@ -5913,19 +5909,6 @@ function bindControlEvents() {
 
   dom.roleTrackingInput?.addEventListener('input', () => {
     state.settings.roleTracking = Number(dom.roleTrackingInput.value) / 100;
-    scheduleTypographyRefresh();
-  });
-
-  dom.cardShadowInput?.addEventListener('change', () => {
-    state.settings.showShadow = dom.cardShadowInput.checked;
-    scheduleTypographyRefresh();
-  });
-
-  dom.cardOutlineInput?.addEventListener('change', () => {
-    state.settings.showOutline = dom.cardOutlineInput.checked;
-    if (state.settings.showOutline && state.settings.cardLineStyle === 'none') {
-      state.settings.cardLineStyle = 'solid';
-    }
     scheduleTypographyRefresh();
   });
 
