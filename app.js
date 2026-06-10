@@ -3144,15 +3144,15 @@ function renderConnectors(layouts) {
     pushPath(fromLayout, toLayout, manualStroke, Math.max(manualWidth, 3), 1);
   });
 
-  const arrowWidth = 10 * markerScale;
-  const arrowHeight = 8 * markerScale;
-  const dotSize = 10 * markerScale;
+  const arrowWidth = 10;
+  const arrowHeight = 8;
+  const dotSize = 10;
   const dotRadius = 3 * markerScale;
   const defs = `<defs>
-    <marker id="connector-arrow-start" viewBox="0 0 10 8" markerWidth="${arrowWidth}" markerHeight="${arrowHeight}" refX="0" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M10,0 L0,4 L10,8 z" fill="${state.settings.accentColor}"></path></marker>
-    <marker id="connector-arrow-end" viewBox="0 0 10 8" markerWidth="${arrowWidth}" markerHeight="${arrowHeight}" refX="10" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L10,4 L0,8 z" fill="${state.settings.accentColor}"></path></marker>
-    <marker id="connector-dot-start" viewBox="0 0 10 10" markerWidth="${dotSize}" markerHeight="${dotSize}" refX="5" refY="5" orient="auto" markerUnits="userSpaceOnUse"><circle cx="5" cy="5" r="${dotRadius}" fill="${state.settings.accentColor}"></circle></marker>
-    <marker id="connector-dot-end" viewBox="0 0 10 10" markerWidth="${dotSize}" markerHeight="${dotSize}" refX="5" refY="5" orient="auto" markerUnits="userSpaceOnUse"><circle cx="5" cy="5" r="${dotRadius}" fill="${state.settings.accentColor}"></circle></marker>
+    <marker id="connector-arrow-start" viewBox="0 0 10 8" markerWidth="${arrowWidth}" markerHeight="${arrowHeight}" refX="0" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M10,0 L0,4 L10,8 z" fill="${state.settings.accentColor}" transform="translate(10 4) scale(${-markerScale}, ${markerScale}) translate(-10 -4)"></path></marker>
+    <marker id="connector-arrow-end" viewBox="0 0 10 8" markerWidth="${arrowWidth}" markerHeight="${arrowHeight}" refX="10" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L10,4 L0,8 z" fill="${state.settings.accentColor}" transform="translate(10 4) scale(${markerScale}, ${markerScale}) translate(-10 -4)"></path></marker>
+    <marker id="connector-dot-start" viewBox="0 0 10 10" markerWidth="${dotSize}" markerHeight="${dotSize}" refX="0" refY="5" orient="auto" markerUnits="userSpaceOnUse"><circle cx="5" cy="5" r="${dotRadius}" fill="${state.settings.accentColor}" transform="translate(5 5) scale(${markerScale}) translate(-5 -5)"></circle></marker>
+    <marker id="connector-dot-end" viewBox="0 0 10 10" markerWidth="${dotSize}" markerHeight="${dotSize}" refX="10" refY="5" orient="auto" markerUnits="userSpaceOnUse"><circle cx="5" cy="5" r="${dotRadius}" fill="${state.settings.accentColor}" transform="translate(5 5) scale(${markerScale}) translate(-5 -5)"></circle></marker>
   </defs>`;
   dom.connectorLayer.innerHTML = `${defs}${paths.join('')}${decorations.join('')}`;
 
