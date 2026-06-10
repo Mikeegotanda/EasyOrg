@@ -37,6 +37,7 @@ const PRESETS = {
     connectorStyle: 'orthogonal',
     connectorType: 'solid',
     connectorWeight: 4,
+    connectorStartMarkerScale: 1,
     connectorMarkerScale: 1,
     cardShape: 'rounded',
     cardLayout: 'avatar-left',
@@ -113,6 +114,7 @@ const PRESETS = {
     connectorStyle: 'orthogonal',
     connectorType: 'solid',
     connectorWeight: 4,
+    connectorStartMarkerScale: 1,
     connectorMarkerScale: 1,
     cardShape: 'rounded',
     cardLayout: 'avatar-left',
@@ -179,6 +181,7 @@ const PRESETS = {
     connectorStyle: 'orthogonal',
     connectorType: 'solid',
     connectorWeight: 4,
+    connectorStartMarkerScale: 1,
     connectorMarkerScale: 1,
     cardShape: 'pill',
     cardLayout: 'avatar-left',
@@ -245,6 +248,7 @@ const PRESETS = {
     connectorStyle: 'orthogonal',
     connectorType: 'solid',
     connectorWeight: 4,
+    connectorStartMarkerScale: 1,
     connectorMarkerScale: 1,
     cardShape: 'soft',
     cardLayout: 'avatar-top',
@@ -379,6 +383,7 @@ function normalizeSettings(settings) {
   normalized.cardFillPattern = normalized.cardFillPattern || 'none';
   normalized.cardLineStyle = normalized.cardLineStyle || 'solid';
   normalized.connectorMarkerScale = Number.isFinite(Number(normalized.connectorMarkerScale)) ? Number(normalized.connectorMarkerScale) : 1;
+  normalized.connectorStartMarkerScale = Number.isFinite(Number(normalized.connectorStartMarkerScale)) ? Number(normalized.connectorStartMarkerScale) : 1;
   const legacyStartPoint = normalizeConnectorMarker(normalized.connectorStartPoint || normalized.connectorDecoration);
   const legacyEndPoint = normalizeConnectorMarker(normalized.connectorEndPoint || normalized.connectorVisualStyle);
   normalized.connectorStartPoint = legacyStartPoint;
@@ -531,6 +536,8 @@ const dom = {
   connectorWeightInput: document.getElementById('connectorWeightInput'),
   connectorWeightValue: document.getElementById('connectorWeightValue'),
   connectorStartPointsInput: document.getElementById('connectorStartPointsInput'),
+  connectorStartMarkerScaleInput: document.getElementById('connectorStartMarkerScaleInput'),
+  connectorStartMarkerScaleValue: document.getElementById('connectorStartMarkerScaleValue'),
   connectorMarkerScaleInput: document.getElementById('connectorMarkerScaleInput'),
   connectorMarkerScaleValue: document.getElementById('connectorMarkerScaleValue'),
   cardEntranceAnimationInput: document.getElementById('cardEntranceAnimationInput'),
@@ -2007,6 +2014,7 @@ function syncTypographySliderState() {
   setSliderFill(dom.emailLineHeightInput);
   setSliderFill(dom.locationSizeInput);
   setSliderFill(dom.locationLineHeightInput);
+  setSliderFill(dom.connectorStartMarkerScaleInput);
   setSliderFill(dom.connectorWeightInput);
   setSliderFill(dom.connectorMarkerScaleInput);
 
@@ -3073,6 +3081,7 @@ function renderConnectors(layouts) {
   const paths = [];
   const decorations = [];
   const strokeWidth = connectorThicknessValue();
+  const startMarkerScale = clamp(Number(state.settings.connectorStartMarkerScale || 1), 0.1, 2.4);
   const markerScale = clamp(Number(state.settings.connectorMarkerScale || 1), 0.1, 2.4);
   const timings = animationTimings();
   const connectorClass = connectorAnimationClass();
@@ -3134,12 +3143,11 @@ function renderConnectors(layouts) {
   const arrowWidth = 10;
   const arrowHeight = 8;
   const dotSize = 10;
-  const dotRadius = 3 * markerScale;
   const defs = `<defs>
-    <marker id="connector-arrow-start" viewBox="0 0 10 8" markerWidth="${arrowWidth}" markerHeight="${arrowHeight}" refX="0" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M10,0 L0,4 L10,8 z" fill="${state.settings.accentColor}" transform="translate(10 4) scale(${-markerScale}, ${markerScale}) translate(-10 -4)"></path></marker>
+    <marker id="connector-arrow-start" viewBox="0 0 10 8" markerWidth="${arrowWidth}" markerHeight="${arrowHeight}" refX="0" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M10,0 L0,4 L10,8 z" fill="${state.settings.accentColor}" transform="translate(10 4) scale(${-startMarkerScale}, ${startMarkerScale}) translate(-10 -4)"></path></marker>
     <marker id="connector-arrow-end" viewBox="0 0 10 8" markerWidth="${arrowWidth}" markerHeight="${arrowHeight}" refX="10" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L10,4 L0,8 z" fill="${state.settings.accentColor}" transform="translate(10 4) scale(${markerScale}, ${markerScale}) translate(-10 -4)"></path></marker>
-    <marker id="connector-dot-start" viewBox="0 0 10 10" markerWidth="${dotSize}" markerHeight="${dotSize}" refX="0" refY="5" orient="auto" markerUnits="userSpaceOnUse"><circle cx="5" cy="5" r="${dotRadius}" fill="${state.settings.accentColor}" transform="translate(5 5) scale(${markerScale}) translate(-5 -5)"></circle></marker>
-    <marker id="connector-dot-end" viewBox="0 0 10 10" markerWidth="${dotSize}" markerHeight="${dotSize}" refX="10" refY="5" orient="auto" markerUnits="userSpaceOnUse"><circle cx="5" cy="5" r="${dotRadius}" fill="${state.settings.accentColor}" transform="translate(5 5) scale(${markerScale}) translate(-5 -5)"></circle></marker>
+    <marker id="connector-dot-start" viewBox="0 0 10 10" markerWidth="${dotSize}" markerHeight="${dotSize}" refX="0" refY="5" orient="auto" markerUnits="userSpaceOnUse"><circle cx="5" cy="5" r="3" fill="${state.settings.accentColor}" transform="translate(5 5) scale(${startMarkerScale}) translate(-5 -5)"></circle></marker>
+    <marker id="connector-dot-end" viewBox="0 0 10 10" markerWidth="${dotSize}" markerHeight="${dotSize}" refX="10" refY="5" orient="auto" markerUnits="userSpaceOnUse"><circle cx="5" cy="5" r="3" fill="${state.settings.accentColor}" transform="translate(5 5) scale(${markerScale}) translate(-5 -5)"></circle></marker>
   </defs>`;
   dom.connectorLayer.innerHTML = `${defs}${paths.join('')}${decorations.join('')}`;
 
@@ -5408,6 +5416,8 @@ function syncControls() {
   if (dom.connectorWeightValue) dom.connectorWeightValue.textContent = `${connectorThicknessValue()} px`;
   setValue(dom.connectorStartPointsInput, state.settings.connectorStartPoint || 'none');
   setValue(dom.connectorMarkersInput, state.settings.connectorEndPoint || 'arrow');
+  setValue(dom.connectorStartMarkerScaleInput, String(state.settings.connectorStartMarkerScale ?? 1));
+  if (dom.connectorStartMarkerScaleValue) dom.connectorStartMarkerScaleValue.textContent = `${Number(state.settings.connectorStartMarkerScale ?? 1).toFixed(1)}x`;
   setValue(dom.connectorMarkerScaleInput, String(state.settings.connectorMarkerScale ?? 1));
   if (dom.connectorMarkerScaleValue) dom.connectorMarkerScaleValue.textContent = `${Number(state.settings.connectorMarkerScale ?? 1).toFixed(1)}x`;
   setValue(dom.cardEntranceAnimationInput, state.settings.cardEntranceAnimation || 'none');
@@ -5426,6 +5436,8 @@ function syncControls() {
   setChecked(dom.ambientGlowInput, state.settings.ambientGlow === true);
   setValue(dom.connectorStartPointsInput, state.settings.connectorStartPoint || 'none');
   setValue(dom.connectorMarkersInput, state.settings.connectorEndPoint || 'arrow');
+  setValue(dom.connectorStartMarkerScaleInput, String(state.settings.connectorStartMarkerScale ?? 1));
+  if (dom.connectorStartMarkerScaleValue) dom.connectorStartMarkerScaleValue.textContent = `${Number(state.settings.connectorStartMarkerScale ?? 1).toFixed(1)}x`;
   setValue(dom.cardVisualTypeInput, state.settings.cardVisualType || 'standard');
   setValue(dom.avatarTreatmentInput, state.settings.avatarTreatment || 'default');
   setValue(dom.bgColorInput, state.settings.bgColor);
@@ -5757,6 +5769,13 @@ function bindControlEvents() {
 
   dom.connectorMarkersInput?.addEventListener('change', () => {
     state.settings.connectorEndPoint = dom.connectorMarkersInput.value;
+    render();
+  });
+
+  dom.connectorStartMarkerScaleInput?.addEventListener('input', () => {
+    state.settings.connectorStartMarkerScale = Number(dom.connectorStartMarkerScaleInput.value);
+    setSliderFill(dom.connectorStartMarkerScaleInput);
+    if (dom.connectorStartMarkerScaleValue) dom.connectorStartMarkerScaleValue.textContent = `${state.settings.connectorStartMarkerScale.toFixed(1)}x`;
     render();
   });
 
