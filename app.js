@@ -2928,10 +2928,11 @@ function getConnectorAnchors(fromLayout, toLayout) {
   }
 
   const targetIsBelow = dy >= 0;
+  const sourceGoesRight = dx >= 0;
   return {
-    fromX: fromLayout.xCenter,
+    fromX: sourceGoesRight ? fromLayout.x + fromLayout.width : fromLayout.x,
     fromY: targetIsBelow ? fromLayout.y + fromLayout.height : fromLayout.y,
-    toX: toLayout.xCenter,
+    toX: sourceGoesRight ? toLayout.x : toLayout.x + toLayout.width,
     toY: targetIsBelow ? toLayout.y : toLayout.y + toLayout.height
   };
 }
