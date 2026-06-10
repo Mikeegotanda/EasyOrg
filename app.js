@@ -42,7 +42,7 @@ const PRESETS = {
     connectorEndColor: '#8d949f',
     connectorStartMarkerScale: 1,
     connectorMarkerScale: 1,
-    cardShape: 'rounded',
+    cardShape: 'rectangle',
     cardLayout: 'avatar-left',
     avatarStyle: 'rounded',
     cardElevation: 'soft',
@@ -121,7 +121,7 @@ const PRESETS = {
     connectorEndColor: '#8d949f',
     connectorStartMarkerScale: 1,
     connectorMarkerScale: 1,
-    cardShape: 'rounded',
+    cardShape: 'rectangle',
     cardLayout: 'avatar-left',
     avatarStyle: 'rounded',
     cardElevation: 'soft',
@@ -190,7 +190,7 @@ const PRESETS = {
     connectorEndColor: '#8d949f',
     connectorStartMarkerScale: 1,
     connectorMarkerScale: 1,
-    cardShape: 'pill',
+    cardShape: 'circle',
     cardLayout: 'avatar-left',
     avatarStyle: 'circle',
     cardElevation: 'soft',
@@ -259,7 +259,7 @@ const PRESETS = {
     connectorEndColor: '#8d949f',
     connectorStartMarkerScale: 1,
     connectorMarkerScale: 1,
-    cardShape: 'soft',
+    cardShape: 'tall-badge',
     cardLayout: 'avatar-top',
     avatarStyle: 'rounded',
     cardElevation: 'flat',
@@ -620,12 +620,7 @@ const dom = {
   roleTrackingValue: document.getElementById('roleTrackingValue'),
   nameWeightInput: document.getElementById('nameWeightInput'),
   roleWeightInput: document.getElementById('roleWeightInput'),
-  cardRadiusInput: document.getElementById('cardRadiusInput'),
-  cardRadiusValue: document.getElementById('cardRadiusValue'),
-  cardWidthScaleInput: document.getElementById('cardWidthScaleInput'),
-  cardWidthScaleValue: document.getElementById('cardWidthScaleValue'),
-  cardHeightScaleInput: document.getElementById('cardHeightScaleInput'),
-  cardHeightScaleValue: document.getElementById('cardHeightScaleValue'),
+  cardShapeInput: document.getElementById('cardShapeInput'),
   cardLayoutInput: document.getElementById('cardLayoutInput'),
   avatarStyleInput: document.getElementById('avatarStyleInput'),
   cardElevationInput: document.getElementById('cardElevationInput'),
@@ -2343,8 +2338,28 @@ function rowLayouts() {
   return layouts;
 }
 
+function applyCardShapePreset(shape) {
+  const presets = {
+    square: { cardWidthScale: 100, cardHeightScale: 100, cardRadius: 0, cardShape: 'square' },
+    rectangle: { cardWidthScale: 132, cardHeightScale: 96, cardRadius: 8, cardShape: 'rectangle' },
+    'tall-badge': { cardWidthScale: 84, cardHeightScale: 140, cardRadius: 18, cardShape: 'tall-badge' },
+    circle: { cardWidthScale: 100, cardHeightScale: 100, cardRadius: 50, cardShape: 'circle' }
+  };
+  return presets[shape] || presets.rectangle;
+}
+
+function normalizeCardShapeName(shape) {
+  const aliases = {
+    rounded: 'rectangle',
+    soft: 'tall-badge',
+    pill: 'circle'
+  };
+  const normalized = String(shape || '').trim();
+  return aliases[normalized] || normalized || 'rectangle';
+}
+
 function getCardRadiusFromShape() {
-  return state.settings.cardRadius;
+  return applyCardShapePreset(normalizeCardShapeName(state.settings.cardShape || 'rectangle')).cardRadius;
 }
 
 function getCardShadowFromElevation() {
@@ -5113,7 +5128,7 @@ function applyFormatNodeStyle(preset) {
       cardLayout: 'avatar-left',
       avatarStyle: 'rounded',
       cardElevation: 'flat',
-      cardShape: 'rounded',
+      cardShape: 'rectangle',
       cardRadius: 8,
       showOutline: true,
       showShadow: false
@@ -5123,7 +5138,7 @@ function applyFormatNodeStyle(preset) {
       cardLayout: 'compact',
       avatarStyle: 'rounded',
       cardElevation: 'flat',
-      cardShape: 'rounded',
+      cardShape: 'rectangle',
       cardRadius: 6,
       cardWidthScale: 82,
       cardHeightScale: 86,
@@ -5147,7 +5162,7 @@ function applyFormatNodeStyle(preset) {
       cardLayout: 'avatar-left',
       avatarStyle: 'circle',
       cardElevation: 'soft',
-      cardShape: 'rounded',
+      cardShape: 'rectangle',
       cardRadius: 8,
       cardWidthScale: 96,
       cardHeightScale: 96,
@@ -5169,7 +5184,7 @@ function applyFormatNodeStyle(preset) {
       cardLayout: 'avatar-top',
       avatarStyle: 'rounded',
       cardElevation: 'soft',
-      cardShape: 'rounded',
+      cardShape: 'rectangle',
       cardRadius: 10,
       showOutline: true,
       showShadow: true
@@ -5179,7 +5194,7 @@ function applyFormatNodeStyle(preset) {
       cardLayout: 'avatar-left',
       avatarStyle: 'floating',
       cardElevation: 'glass',
-      cardShape: 'soft',
+      cardShape: 'tall-badge',
       cardRadius: 18,
       showOutline: true,
       showShadow: true
@@ -5189,7 +5204,7 @@ function applyFormatNodeStyle(preset) {
       cardLayout: 'avatar-left',
       avatarStyle: 'circle',
       cardElevation: 'soft',
-      cardShape: 'pill',
+      cardShape: 'circle',
       cardRadius: 28,
       showOutline: false,
       showShadow: true
@@ -5209,7 +5224,7 @@ function applyFormatNodeStyle(preset) {
       cardLayout: 'avatar-top',
       avatarStyle: 'full-bleed',
       cardElevation: 'soft',
-      cardShape: 'soft',
+      cardShape: 'tall-badge',
       cardRadius: 16,
       showOutline: true,
       showShadow: true
@@ -5250,6 +5265,7 @@ async function uploadPicturesForMembers(files) {
 
 function syncControls() {
   populateFontSelectors();
+  Object.assign(state.settings, applyCardShapePreset(normalizeCardShapeName(state.settings.cardShape || 'rectangle')));
   const setValue = (input, value) => {
     if (input) {
       input.value = value;
@@ -5365,12 +5381,7 @@ function syncControls() {
   if (dom.emailLineHeightValue) dom.emailLineHeightValue.textContent = `${(Number(dom.emailLineHeightInput?.value || 112) / 100).toFixed(2)}x`;
   if (dom.locationFontInput) dom.locationFontInput.value = state.settings.locationFont || state.settings.cardFont || 'Arial';
   if (dom.locationColorInput) dom.locationColorInput.value = state.settings.locationColor || state.settings.cardSubColor;
-  setValue(dom.cardRadiusInput, String(state.settings.cardRadius));
-  if (dom.cardRadiusValue) dom.cardRadiusValue.textContent = `${Math.round(Number(dom.cardRadiusInput?.value || state.settings.cardRadius || 0))}%`;
-  setValue(dom.cardWidthScaleInput, String(state.settings.cardWidthScale ?? state.settings.cardScale ?? 100));
-  if (dom.cardWidthScaleValue) dom.cardWidthScaleValue.textContent = `${Math.round(Number(dom.cardWidthScaleInput?.value || state.settings.cardWidthScale || state.settings.cardScale || 100))}%`;
-  setValue(dom.cardHeightScaleInput, String(state.settings.cardHeightScale ?? state.settings.cardScale ?? 100));
-  if (dom.cardHeightScaleValue) dom.cardHeightScaleValue.textContent = `${Math.round(Number(dom.cardHeightScaleInput?.value || state.settings.cardHeightScale || state.settings.cardScale || 100))}%`;
+  setValue(dom.cardShapeInput, normalizeCardShapeName(state.settings.cardShape || 'rectangle'));
   setValue(dom.cardLayoutInput, state.settings.cardLayout);
   setValue(dom.avatarStyleInput, state.settings.avatarStyle);
   setValue(dom.cardElevationInput, String(getElevationSliderValue(state.settings.cardElevation)));
@@ -5893,21 +5904,11 @@ function bindControlEvents() {
     scheduleTypographyRefresh();
   });
 
-  dom.cardRadiusInput?.addEventListener('input', () => {
-    state.settings.cardRadius = Number(dom.cardRadiusInput.value);
-    if (dom.cardRadiusValue) dom.cardRadiusValue.textContent = `${state.settings.cardRadius}%`;
-    scheduleTypographyRefresh();
-  });
-
-  dom.cardWidthScaleInput?.addEventListener('input', () => {
-    state.settings.cardWidthScale = Number(dom.cardWidthScaleInput.value);
-    if (dom.cardWidthScaleValue) dom.cardWidthScaleValue.textContent = `${state.settings.cardWidthScale}%`;
-    render();
-  });
-
-  dom.cardHeightScaleInput?.addEventListener('input', () => {
-    state.settings.cardHeightScale = Number(dom.cardHeightScaleInput.value);
-    if (dom.cardHeightScaleValue) dom.cardHeightScaleValue.textContent = `${state.settings.cardHeightScale}%`;
+  dom.cardShapeInput?.addEventListener('change', () => {
+    const preset = applyCardShapePreset(dom.cardShapeInput.value);
+    Object.assign(state.settings, preset);
+    state.settings.nodeStylePreset = 'custom';
+    syncControls();
     render();
   });
 
