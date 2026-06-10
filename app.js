@@ -566,7 +566,6 @@ const dom = {
   floatingCardsInput: document.getElementById('floatingCardsInput'),
   parallaxEnabledInput: document.getElementById('parallaxEnabledInput'),
   parallaxAmountInput: document.getElementById('parallaxAmountInput'),
-  ambientGlowInput: document.getElementById('ambientGlowInput'),
   connectorMarkersInput: document.getElementById('connectorMarkersInput'),
   cardVisualTypeInput: document.getElementById('cardVisualTypeInput'),
   bgColorInput: document.getElementById('bgColorInput'),
@@ -3196,8 +3195,7 @@ function applyStyleToSlide() {
   dom.slide.style.setProperty('--card-outline', state.settings.outlineColor);
   const blurStrength = clamp(Number(state.settings.blurStrength || 10), 0, 24);
   const shadowIntensity = clamp((Number(state.settings.shadowIntensity) || 100) / 100, 0, 2.2);
-  const glow = state.settings.ambientGlow ? `0 0 ${Math.round(28 + shadowIntensity * 30)}px ${state.settings.accentColor}30` : '';
-  dom.slide.style.boxShadow = `0 ${Math.round(18 * shadowIntensity)}px ${Math.round(34 * shadowIntensity)}px rgba(23, 33, 45, ${0.22 * Math.max(0.4, shadowIntensity)})${glow ? `, ${glow}` : ''}`;
+  dom.slide.style.boxShadow = `0 ${Math.round(18 * shadowIntensity)}px ${Math.round(34 * shadowIntensity)}px rgba(23, 33, 45, ${0.22 * Math.max(0.4, shadowIntensity)})`;
   dom.slide.style.backdropFilter = `blur(${Math.round(blurStrength * 0.12)}px)`;
 
   applySlideBackgroundLayers();
@@ -5335,7 +5333,6 @@ function syncControls() {
   setChecked(dom.floatingCardsInput, state.settings.floatingCards !== false);
   setChecked(dom.parallaxEnabledInput, state.settings.parallaxEnabled === true);
   setValue(dom.parallaxAmountInput, String(state.settings.parallaxAmount ?? 8));
-  setChecked(dom.ambientGlowInput, state.settings.ambientGlow === true);
   setValue(dom.connectorStartPointsInput, state.settings.connectorStartPoint || 'none');
   setValue(dom.connectorMarkersInput, state.settings.connectorEndPoint || 'none');
   setValue(dom.connectorStartMarkerScaleInput, String(state.settings.connectorStartMarkerScale ?? 1));
@@ -5741,11 +5738,6 @@ function bindControlEvents() {
   dom.parallaxAmountInput?.addEventListener('input', () => {
     state.settings.parallaxAmount = Number(dom.parallaxAmountInput.value);
     render();
-  });
-
-  dom.ambientGlowInput?.addEventListener('change', () => {
-    state.settings.ambientGlow = dom.ambientGlowInput.checked;
-    scheduleTypographyRefresh();
   });
 
   dom.cardVisualTypeInput?.addEventListener('change', () => {
