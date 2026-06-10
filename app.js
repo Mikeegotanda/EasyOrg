@@ -3139,8 +3139,8 @@ function renderConnectors(layouts) {
   const dotRef = 4 * markerScale;
   const dotRadius = 3 * markerScale;
   const defs = `<defs>
-    <marker id="connector-arrow-start" markerWidth="${arrowWidth}" markerHeight="${arrowHeight}" refX="${arrowRefXStart}" refY="${4 * markerScale}" orient="auto" markerUnits="strokeWidth"><path d="M10,0 L0,4 L10,8 z" fill="${state.settings.accentColor}"></path></marker>
-    <marker id="connector-arrow-end" markerWidth="${arrowWidth}" markerHeight="${arrowHeight}" refX="${arrowRefX}" refY="${4 * markerScale}" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L10,4 L0,8 z" fill="${state.settings.accentColor}"></path></marker>
+    <marker id="connector-arrow-start" markerWidth="${arrowWidth}" markerHeight="${arrowHeight}" refX="${arrowRefXStart}" refY="${4 * markerScale}" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L10,4 L0,8 z" fill="${state.settings.accentColor}"></path></marker>
+    <marker id="connector-arrow-end" markerWidth="${arrowWidth}" markerHeight="${arrowHeight}" refX="${arrowRefX}" refY="${4 * markerScale}" orient="auto" markerUnits="strokeWidth"><path d="M10,0 L0,4 L10,8 z" fill="${state.settings.accentColor}"></path></marker>
     <marker id="connector-dot-start" markerWidth="${dotSize}" markerHeight="${dotSize}" refX="${dotRef}" refY="${dotRef}" orient="auto" markerUnits="strokeWidth"><circle cx="${dotRef}" cy="${dotRef}" r="${dotRadius}" fill="${state.settings.accentColor}"></circle></marker>
     <marker id="connector-dot-end" markerWidth="${dotSize}" markerHeight="${dotSize}" refX="${dotRef}" refY="${dotRef}" orient="auto" markerUnits="strokeWidth"><circle cx="${dotRef}" cy="${dotRef}" r="${dotRadius}" fill="${state.settings.accentColor}"></circle></marker>
   </defs>`;
