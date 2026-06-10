@@ -1600,7 +1600,7 @@ body {
 
 .slide-body {
   position: absolute;
-  inset: var(--header-height, 128px) 0 18px;
+  inset: var(--header-height, 128px) 0 0;
 }
 
 .connector-layer {
