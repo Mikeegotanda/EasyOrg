@@ -1,4 +1,4 @@
-const DEFAULT_MEMBERS = [];
+﻿const DEFAULT_MEMBERS = [];
 
 const PRESETS = {
   preconstruction: {
@@ -466,7 +466,6 @@ const state = {
   canvasBoardHeight: null,
   showMinimap: true,
   savedCharts: [],
-  archiveTagFilter: 'All Tags',
   chartDetails: createDefaultChartDetails(),
   chartSettingsMode: 'new'
 };
@@ -482,10 +481,8 @@ const dom = {
   loadLibraryZipBtn: document.getElementById('loadLibraryZipBtn'),
   removeLibraryZipBtn: document.getElementById('removeLibraryZipBtn'),
   libraryUploadStatus: document.getElementById('libraryUploadStatus'),
-  archiveTagFilter: document.getElementById('archiveTagFilter'),
   chartArchiveList: document.getElementById('chartArchiveList'),
   chartTitleInput: document.getElementById('chartTitleInput'),
-  chartTagsInput: document.getElementById('chartTagsInput'),
   formatDirectionInput: document.getElementById('formatDirectionInput'),
   formatAdvancedLayoutInput: document.getElementById('formatAdvancedLayoutInput'),
   formatNodeStyleInput: document.getElementById('formatNodeStyleInput'),
@@ -5518,10 +5515,6 @@ function bindControlEvents() {
   dom.memberSearch?.addEventListener('input', renderLibrary);
   dom.memberDepartmentFilter?.addEventListener('change', renderLibrary);
   dom.memberPositionFilter?.addEventListener('change', renderLibrary);
-  dom.archiveTagFilter?.addEventListener('change', () => {
-    state.archiveTagFilter = dom.archiveTagFilter.value;
-    renderChartArchive();
-  });
   dom.addMemberBtn?.addEventListener('click', addMemberFromForm);
   dom.cancelEditMemberBtn?.addEventListener('click', () => {
     resetMemberForm();
@@ -6816,17 +6809,6 @@ function membersForChartSnapshot() {
   return membersForStorage().filter((member) => usedMemberIds.has(member.id));
 }
 
-function parseChartTags(value) {
-  return Array.from(
-    new Set(
-      String(value || '')
-        .split(/[,;]/)
-        .map((tag) => tag.trim().replace(/^#/, ''))
-        .filter(Boolean)
-    )
-  );
-}
-
 function syncChartDetailsInputs() {
   if (!dom.chartSettingsNameInput) {
     return;
@@ -7067,31 +7049,17 @@ function formatArchiveDate(value) {
 }
 
 function renderChartArchive() {
-  if (!dom.chartArchiveList || !dom.archiveTagFilter) {
+  if (!dom.chartArchiveList) {
     return;
   }
 
-  const allTags = Array.from(new Set(state.savedCharts.flatMap((chart) => chart.tags || []))).sort((a, b) =>
-    a.localeCompare(b)
-  );
-  const previous = state.archiveTagFilter || dom.archiveTagFilter.value || 'All Tags';
-  const filterOptions = ['All Tags', ...allTags];
-  state.archiveTagFilter = filterOptions.includes(previous) ? previous : 'All Tags';
-  dom.archiveTagFilter.innerHTML = filterOptions
-    .map((tag) => `<option value="${escapeHtml(tag)}">${escapeHtml(tag)}</option>`)
-    .join('');
-  dom.archiveTagFilter.value = state.archiveTagFilter;
-
   const charts = state.savedCharts
-    .filter((chart) => state.archiveTagFilter === 'All Tags' || (chart.tags || []).includes(state.archiveTagFilter))
+    .slice()
     .sort((a, b) => new Date(b.updatedAt || b.createdAt || 0) - new Date(a.updatedAt || a.createdAt || 0));
 
   dom.chartArchiveList.innerHTML = charts.length
     ? charts
         .map((chart) => {
-          const tags = chart.tags?.length
-            ? chart.tags.map((tag) => `<span class="archive-tag">${escapeHtml(tag)}</span>`).join('')
-            : '<span class="archive-tag muted">No tags</span>';
           const owner = chart.owner ? ` · ${escapeHtml(chart.owner)}` : '';
           const thumbnail = chart.thumbnail
             ? `<img class="archive-thumb" src="${chart.thumbnail}" alt="Preview of ${escapeHtml(chart.name)}" />`
@@ -7101,7 +7069,6 @@ function renderChartArchive() {
               ${thumbnail}
               <div class="archive-card-title">${escapeHtml(chart.name)}</div>
               <div class="archive-card-meta">${formatArchiveDate(chart.updatedAt || chart.createdAt)}${owner} · ${chart.memberCount || 0} cards</div>
-              <div class="archive-tags">${tags}</div>
               <div class="archive-actions">
                 <button class="archive-load-btn" type="button" data-load-chart-id="${chart.id}">Load</button>
                 <button class="archive-delete-btn" type="button" data-delete-chart-id="${chart.id}">Delete</button>
@@ -7119,7 +7086,6 @@ function renderChartArchive() {
     button.addEventListener('click', () => deleteSavedChart(button.dataset.deleteChartId));
   });
 }
-
 async function saveCurrentChart() {
   const memberCount = Object.keys(state.nodes).length;
   if (!memberCount) {
@@ -7129,9 +7095,7 @@ async function saveCurrentChart() {
 
   const defaultName = `Org Chart ${new Date().toLocaleDateString()}`;
   const detailName = state.chartDetails?.name?.trim() || '';
-  const name = dom.chartTitleInput?.value.trim() || detailName || defaultName;
-  const tags = parseChartTags(dom.chartTagsInput?.value || '');
-  const now = new Date().toISOString();
+  const name = dom.chartTitleInput?.value.trim() || detailName || defaultName;  const now = new Date().toISOString();
   state.chartDetails = normalizeChartDetails({
     ...state.chartDetails,
     name
@@ -7139,9 +7103,7 @@ async function saveCurrentChart() {
   const chart = {
     id: `chart-${Date.now()}`,
     name: name.trim(),
-    owner: state.chartDetails.createdBy || '',
-    tags,
-    memberCount,
+    owner: state.chartDetails.createdBy || '',    memberCount,
     createdAt: state.chartDetails.createdDate ? new Date(state.chartDetails.createdDate).toISOString() : now,
     updatedAt: now,
     thumbnail: '',
@@ -7164,9 +7126,6 @@ async function saveCurrentChart() {
     renderChartArchive();
     if (dom.chartTitleInput) {
       dom.chartTitleInput.value = '';
-    }
-    if (dom.chartTagsInput) {
-      dom.chartTagsInput.value = '';
     }
     notify(`Saved ${chart.name} to the chart archive.`);
   } catch (error) {
@@ -7727,3 +7686,8 @@ boot().catch((error) => {
   fitCanvasOnOpen();
   notify('Ready. Drag members to build your org chart slide.');
 });
+
+
+
+
+
