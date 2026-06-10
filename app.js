@@ -37,6 +37,7 @@ const PRESETS = {
     connectorStyle: 'orthogonal',
     connectorType: 'solid',
     connectorWeight: 4,
+    connectorMarkerScale: 1,
     cardShape: 'rounded',
     cardLayout: 'avatar-left',
     avatarStyle: 'rounded',
@@ -110,6 +111,7 @@ const PRESETS = {
     connectorStyle: 'orthogonal',
     connectorType: 'solid',
     connectorWeight: 4,
+    connectorMarkerScale: 1,
     cardShape: 'rounded',
     cardLayout: 'avatar-left',
     avatarStyle: 'rounded',
@@ -173,6 +175,7 @@ const PRESETS = {
     connectorStyle: 'orthogonal',
     connectorType: 'solid',
     connectorWeight: 4,
+    connectorMarkerScale: 1,
     cardShape: 'pill',
     cardLayout: 'avatar-left',
     avatarStyle: 'circle',
@@ -236,6 +239,7 @@ const PRESETS = {
     connectorStyle: 'orthogonal',
     connectorType: 'solid',
     connectorWeight: 4,
+    connectorMarkerScale: 1,
     cardShape: 'soft',
     cardLayout: 'avatar-top',
     avatarStyle: 'rounded',
@@ -366,6 +370,7 @@ function normalizeSettings(settings) {
   normalized.locationLineHeight = Number.isFinite(Number(normalized.locationLineHeight)) ? Number(normalized.locationLineHeight) : 1.12;
   normalized.cardFillPattern = normalized.cardFillPattern || 'none';
   normalized.cardLineStyle = normalized.cardLineStyle || 'solid';
+  normalized.connectorMarkerScale = Number.isFinite(Number(normalized.connectorMarkerScale)) ? Number(normalized.connectorMarkerScale) : 1;
   const legacyEndPoint = normalizeConnectorMarker(normalized.connectorVisualStyle);
   const legacyStartPoint = normalizeConnectorMarker(normalized.connectorStartPoint || normalized.connectorDecoration);
   if (!normalized.connectorMarkers) {
@@ -528,6 +533,8 @@ const dom = {
   connectorTypeInput: document.getElementById('connectorTypeInput'),
   connectorWeightInput: document.getElementById('connectorWeightInput'),
   connectorWeightValue: document.getElementById('connectorWeightValue'),
+  connectorMarkerScaleInput: document.getElementById('connectorMarkerScaleInput'),
+  connectorMarkerScaleValue: document.getElementById('connectorMarkerScaleValue'),
   cardEntranceAnimationInput: document.getElementById('cardEntranceAnimationInput'),
   connectorAnimationInput: document.getElementById('connectorAnimationInput'),
   animationSpeedInput: document.getElementById('animationSpeedInput'),
@@ -2898,48 +2905,26 @@ function onCardClick(nodeId) {
 }
 
 function getConnectorAnchors(fromLayout, toLayout) {
-  const chooseVerticalSide = () => {
-    const fromCenterY = fromLayout.yCenter;
-    const toCenterY = toLayout.yCenter;
-    return fromCenterY <= toCenterY
-      ? { fromY: fromLayout.y + fromLayout.height, toY: toLayout.y }
-      : { fromY: fromLayout.y, toY: toLayout.y + toLayout.height };
-  };
+  const dx = toLayout.xCenter - fromLayout.xCenter;
+  const dy = toLayout.yCenter - fromLayout.yCenter;
+  const horizontalDominant = Math.abs(dx) > Math.abs(dy);
 
-  const chooseHorizontalSide = () => {
-    const fromCenterX = fromLayout.xCenter;
-    const toCenterX = toLayout.xCenter;
-    return fromCenterX <= toCenterX
-      ? { fromX: fromLayout.x + fromLayout.width, toX: toLayout.x }
-      : { fromX: fromLayout.x, toX: toLayout.x + toLayout.width };
-  };
-
-  if (isHorizontalHierarchy()) {
-    const horizontal = chooseHorizontalSide();
+  if (horizontalDominant) {
+    const fromIsLeft = dx >= 0;
     return {
-      fromX: horizontal.fromX,
+      fromX: fromIsLeft ? fromLayout.x + fromLayout.width : fromLayout.x,
       fromY: fromLayout.yCenter,
-      toX: horizontal.toX,
+      toX: fromIsLeft ? toLayout.x : toLayout.x + toLayout.width,
       toY: toLayout.yCenter
     };
   }
 
-  if (state.settings.hierarchyDirection === 'bottom-up') {
-    const vertical = chooseVerticalSide();
-    return {
-      fromX: fromLayout.xCenter,
-      fromY: vertical.fromY,
-      toX: toLayout.xCenter,
-      toY: vertical.toY
-    };
-  }
-
-  const vertical = chooseVerticalSide();
+  const fromIsAbove = dy >= 0;
   return {
     fromX: fromLayout.xCenter,
-    fromY: vertical.fromY,
+    fromY: fromIsAbove ? fromLayout.y + fromLayout.height : fromLayout.y,
     toX: toLayout.xCenter,
-    toY: vertical.toY
+    toY: fromIsAbove ? toLayout.y : toLayout.y + toLayout.height
   };
 }
 
@@ -3013,32 +2998,11 @@ function autoLinkPairs(layouts) {
 
 function connectorVisualProfile() {
   const visual = state.settings.connectorVisualStyle || 'default';
-  if (visual === 'sharp') {
-    return { linecap: 'square', linejoin: 'miter' };
-  }
-  if (visual === 'rounded') {
-    return { linecap: 'round', linejoin: 'round' };
-  }
-  if (visual === 'organic') {
+  if (visual === 'curved') {
     return { linecap: 'round', linejoin: 'round', routeHint: 'curved' };
   }
-  if (visual === 'technical') {
-    return { linecap: 'butt', linejoin: 'miter', dash: '6 4' };
-  }
-  if (visual === 'hand-drawn') {
-    return { linecap: 'round', linejoin: 'round', dash: '3 2' };
-  }
-  if (visual === 'double') {
-    return { linecap: 'round', linejoin: 'round', double: true };
-  }
-  if (visual === 'dotted') {
-    return { linecap: 'round', linejoin: 'round', dash: '1 10' };
-  }
-  if (visual === 'segmented') {
-    return { linecap: 'round', linejoin: 'round', dash: '15 8' };
-  }
-  if (visual === 'tapered') {
-    return { linecap: 'round', linejoin: 'round', tapered: true };
+  if (visual === 'straight') {
+    return { linecap: 'round', linejoin: 'round', routeHint: 'straight' };
   }
   return { linecap: 'round', linejoin: 'round' };
 }
@@ -3086,6 +3050,20 @@ function connectorMarkerPreset(value) {
   return { start: 'none', end: 'arrow' };
 }
 
+function connectorTypePreset(value) {
+  const normalized = String(value || '').toLowerCase();
+  if (normalized === 'dashed') {
+    return { dash: '9 7' };
+  }
+  if (normalized === 'double') {
+    return { double: true };
+  }
+  if (normalized === 'dotted') {
+    return { dash: '1 10' };
+  }
+  return {};
+}
+
 function syncConnectorLayerSize() {
   const layerWidth = dom.cardLayer.clientWidth || 1280;
   const layerHeight = dom.cardLayer.clientHeight || 560;
@@ -3098,16 +3076,14 @@ function renderConnectors(layouts) {
   const paths = [];
   const decorations = [];
   const strokeWidth = connectorThicknessValue();
+  const markerScale = clamp(Number(state.settings.connectorMarkerScale || 1), 0.6, 2.4);
   const timings = animationTimings();
   const connectorClass = connectorAnimationClass();
-  const visual = connectorVisualProfile();
   const markerPreset = connectorMarkerPreset(state.settings.connectorMarkers);
   const startMarker = markerPreset.start;
   const endMarker = markerPreset.end;
-  const baseDash =
-    state.settings.connectorType === 'dashed'
-      ? '9 7'
-      : visual.dash || '';
+  const typeProfile = connectorTypePreset(state.settings.connectorType);
+  const baseDash = typeProfile.dash || '';
   let pathIndex = 0;
 
   function pushPath(fromLayout, toLayout, stroke, width, opacity = 0.8) {
@@ -3120,10 +3096,10 @@ function renderConnectors(layouts) {
     const dashValue = connectorClass === 'anim-connector-draw' ? '' : connectorClass === 'anim-connector-flow' ? '14 10' : baseDash;
     const markerStart = startMarker === 'arrow' ? 'url(#connector-arrow-start)' : startMarker === 'dot' ? 'url(#connector-dot-start)' : '';
     const markerEnd = endMarker === 'arrow' ? 'url(#connector-arrow-end)' : endMarker === 'dot' ? 'url(#connector-dot-end)' : '';
-    const linecap = visual.linecap || 'round';
-    const linejoin = visual.linejoin || 'round';
+    const linecap = typeProfile.double ? 'round' : 'round';
+    const linejoin = typeProfile.double ? 'round' : 'round';
 
-    if (visual.double) {
+    if (typeProfile.double) {
       paths.push(
         `<path d="${d}" class="connector-line ${connectorClass}" fill="none" stroke="${stroke}" stroke-width="${width + 3}" opacity="${opacity * 0.25}" ${dashValue ? `stroke-dasharray="${dashValue}"` : ''} stroke-linecap="${linecap}" stroke-linejoin="${linejoin}" style="--connector-duration:${timings.connectorDuration}ms;--connector-delay:${delay}ms;"></path>`
       );
@@ -3155,11 +3131,18 @@ function renderConnectors(layouts) {
     pushPath(fromLayout, toLayout, manualStroke, Math.max(manualWidth, 3), 1);
   });
 
+  const arrowWidth = 10 * markerScale;
+  const arrowHeight = 8 * markerScale;
+  const arrowRefX = 8 * markerScale;
+  const arrowRefXStart = 2 * markerScale;
+  const dotSize = 8 * markerScale;
+  const dotRef = 4 * markerScale;
+  const dotRadius = 3 * markerScale;
   const defs = `<defs>
-    <marker id="connector-arrow-start" markerWidth="10" markerHeight="8" refX="2" refY="4" orient="auto" markerUnits="strokeWidth"><path d="M10,0 L0,4 L10,8 z" fill="${state.settings.accentColor}"></path></marker>
-    <marker id="connector-arrow-end" markerWidth="10" markerHeight="8" refX="8" refY="4" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L10,4 L0,8 z" fill="${state.settings.accentColor}"></path></marker>
-    <marker id="connector-dot-start" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto" markerUnits="strokeWidth"><circle cx="4" cy="4" r="3" fill="${state.settings.accentColor}"></circle></marker>
-    <marker id="connector-dot-end" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto" markerUnits="strokeWidth"><circle cx="4" cy="4" r="3" fill="${state.settings.accentColor}"></circle></marker>
+    <marker id="connector-arrow-start" markerWidth="${arrowWidth}" markerHeight="${arrowHeight}" refX="${arrowRefXStart}" refY="${4 * markerScale}" orient="auto" markerUnits="strokeWidth"><path d="M10,0 L0,4 L10,8 z" fill="${state.settings.accentColor}"></path></marker>
+    <marker id="connector-arrow-end" markerWidth="${arrowWidth}" markerHeight="${arrowHeight}" refX="${arrowRefX}" refY="${4 * markerScale}" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L10,4 L0,8 z" fill="${state.settings.accentColor}"></path></marker>
+    <marker id="connector-dot-start" markerWidth="${dotSize}" markerHeight="${dotSize}" refX="${dotRef}" refY="${dotRef}" orient="auto" markerUnits="strokeWidth"><circle cx="${dotRef}" cy="${dotRef}" r="${dotRadius}" fill="${state.settings.accentColor}"></circle></marker>
+    <marker id="connector-dot-end" markerWidth="${dotSize}" markerHeight="${dotSize}" refX="${dotRef}" refY="${dotRef}" orient="auto" markerUnits="strokeWidth"><circle cx="${dotRef}" cy="${dotRef}" r="${dotRadius}" fill="${state.settings.accentColor}"></circle></marker>
   </defs>`;
   dom.connectorLayer.innerHTML = `${defs}${paths.join('')}${decorations.join('')}`;
 
@@ -5426,6 +5409,8 @@ function syncControls() {
   setValue(dom.connectorTypeInput, state.settings.connectorType);
   setValue(dom.connectorWeightInput, String(connectorThicknessValue()));
   if (dom.connectorWeightValue) dom.connectorWeightValue.textContent = `${connectorThicknessValue()} px`;
+  setValue(dom.connectorMarkerScaleInput, String(state.settings.connectorMarkerScale ?? 1));
+  if (dom.connectorMarkerScaleValue) dom.connectorMarkerScaleValue.textContent = `${Number(state.settings.connectorMarkerScale ?? 1).toFixed(1)}x`;
   setValue(dom.cardEntranceAnimationInput, state.settings.cardEntranceAnimation || 'none');
   setValue(dom.connectorAnimationInput, state.settings.connectorAnimation || 'none');
   setValue(dom.animationSpeedInput, state.settings.animationSpeed || 'normal');
@@ -5761,6 +5746,12 @@ function bindControlEvents() {
   dom.connectorWeightInput?.addEventListener('input', () => {
     state.settings.connectorWeight = Number(dom.connectorWeightInput.value);
     if (dom.connectorWeightValue) dom.connectorWeightValue.textContent = `${state.settings.connectorWeight} px`;
+    render();
+  });
+
+  dom.connectorMarkerScaleInput?.addEventListener('input', () => {
+    state.settings.connectorMarkerScale = Number(dom.connectorMarkerScaleInput.value);
+    if (dom.connectorMarkerScaleValue) dom.connectorMarkerScaleValue.textContent = `${state.settings.connectorMarkerScale.toFixed(1)}x`;
     render();
   });
 
