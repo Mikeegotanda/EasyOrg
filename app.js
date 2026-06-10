@@ -3144,13 +3144,21 @@ function renderConnectors(layouts) {
   const arrowHeight = 12;
   const dotSize = 12;
   const squareSize = 12;
+  const startArrowWidth = arrowWidth * startMarkerScale;
+  const startArrowHeight = arrowHeight * startMarkerScale;
+  const endArrowWidth = arrowWidth * markerScale;
+  const endArrowHeight = arrowHeight * markerScale;
+  const startDotSize = dotSize * startMarkerScale;
+  const endDotSize = dotSize * markerScale;
+  const startSquareSize = squareSize * startMarkerScale;
+  const endSquareSize = squareSize * markerScale;
   const defs = `<defs>
-    <marker id="connector-arrow-start" viewBox="0 0 16 12" markerWidth="${arrowWidth}" markerHeight="${arrowHeight}" refX="0" refY="6" orient="auto" markerUnits="userSpaceOnUse"><path d="M16,0 L0,6 L16,12 z" fill="${state.settings.accentColor}" transform="translate(16 6) scale(${-startMarkerScale}, ${startMarkerScale}) translate(-16 -6)"></path></marker>
-    <marker id="connector-arrow-end" viewBox="0 0 16 12" markerWidth="${arrowWidth}" markerHeight="${arrowHeight}" refX="16" refY="6" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L16,6 L0,12 z" fill="${state.settings.accentColor}" transform="translate(16 6) scale(${markerScale}, ${markerScale}) translate(-16 -6)"></path></marker>
-    <marker id="connector-dot-start" viewBox="0 0 12 12" markerWidth="${dotSize}" markerHeight="${dotSize}" refX="0" refY="6" orient="auto" markerUnits="userSpaceOnUse"><circle cx="6" cy="6" r="4" fill="${state.settings.accentColor}" transform="translate(6 6) scale(${startMarkerScale}) translate(-6 -6)"></circle></marker>
-    <marker id="connector-dot-end" viewBox="0 0 12 12" markerWidth="${dotSize}" markerHeight="${dotSize}" refX="12" refY="6" orient="auto" markerUnits="userSpaceOnUse"><circle cx="6" cy="6" r="4" fill="${state.settings.accentColor}" transform="translate(6 6) scale(${markerScale}) translate(-6 -6)"></circle></marker>
-    <marker id="connector-square-start" viewBox="0 0 12 12" markerWidth="${squareSize}" markerHeight="${squareSize}" refX="0" refY="6" orient="auto" markerUnits="userSpaceOnUse"><rect x="3" y="3" width="6" height="6" fill="${state.settings.accentColor}" transform="translate(6 6) scale(${startMarkerScale}) translate(-6 -6)"></rect></marker>
-    <marker id="connector-square-end" viewBox="0 0 12 12" markerWidth="${squareSize}" markerHeight="${squareSize}" refX="12" refY="6" orient="auto" markerUnits="userSpaceOnUse"><rect x="3" y="3" width="6" height="6" fill="${state.settings.accentColor}" transform="translate(6 6) scale(${markerScale}) translate(-6 -6)"></rect></marker>
+    <marker id="connector-arrow-start" viewBox="0 0 16 12" markerWidth="${startArrowWidth}" markerHeight="${startArrowHeight}" refX="16" refY="6" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L16,6 L0,12 z" fill="${state.settings.accentColor}"></path></marker>
+    <marker id="connector-arrow-end" viewBox="0 0 16 12" markerWidth="${endArrowWidth}" markerHeight="${endArrowHeight}" refX="16" refY="6" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L16,6 L0,12 z" fill="${state.settings.accentColor}"></path></marker>
+    <marker id="connector-dot-start" viewBox="0 0 12 12" markerWidth="${startDotSize}" markerHeight="${startDotSize}" refX="12" refY="6" orient="auto" markerUnits="userSpaceOnUse"><circle cx="6" cy="6" r="4" fill="${state.settings.accentColor}"></circle></marker>
+    <marker id="connector-dot-end" viewBox="0 0 12 12" markerWidth="${endDotSize}" markerHeight="${endDotSize}" refX="12" refY="6" orient="auto" markerUnits="userSpaceOnUse"><circle cx="6" cy="6" r="4" fill="${state.settings.accentColor}"></circle></marker>
+    <marker id="connector-square-start" viewBox="0 0 12 12" markerWidth="${startSquareSize}" markerHeight="${startSquareSize}" refX="12" refY="6" orient="auto" markerUnits="userSpaceOnUse"><rect x="3" y="3" width="6" height="6" fill="${state.settings.accentColor}"></rect></marker>
+    <marker id="connector-square-end" viewBox="0 0 12 12" markerWidth="${endSquareSize}" markerHeight="${endSquareSize}" refX="12" refY="6" orient="auto" markerUnits="userSpaceOnUse"><rect x="3" y="3" width="6" height="6" fill="${state.settings.accentColor}"></rect></marker>
   </defs>`;
   dom.connectorLayer.innerHTML = `${defs}${paths.join('')}${decorations.join('')}`;
 
