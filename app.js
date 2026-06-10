@@ -545,6 +545,7 @@ const dom = {
   symmetryDynamicInput: document.getElementById('symmetryDynamicInput'),
   structureFreeformInput: document.getElementById('structureFreeformInput'),
   shadowIntensityInput: document.getElementById('shadowIntensityInput'),
+  shadowIntensityValue: document.getElementById('shadowIntensityValue'),
   blurStrengthInput: document.getElementById('blurStrengthInput'),
   connectorMarkersInput: document.getElementById('connectorMarkersInput'),
   cardVisualTypeInput: document.getElementById('cardVisualTypeInput'),
@@ -5299,6 +5300,7 @@ function syncControls() {
   setValue(dom.symmetryDynamicInput, String(state.settings.symmetryDynamic ?? 18));
   setValue(dom.structureFreeformInput, String(state.settings.structureFreeform ?? 14));
   setValue(dom.shadowIntensityInput, String(state.settings.shadowIntensity ?? 100));
+  if (dom.shadowIntensityValue) dom.shadowIntensityValue.textContent = `${Math.round(Number(dom.shadowIntensityInput?.value || state.settings.shadowIntensity || 100))}%`;
   setValue(dom.blurStrengthInput, String(state.settings.blurStrength ?? 10));
   setValue(dom.connectorStartPointsInput, state.settings.connectorStartPoint || 'none');
   setValue(dom.connectorMarkersInput, state.settings.connectorEndPoint || 'none');
@@ -5675,6 +5677,7 @@ function bindControlEvents() {
 
   dom.shadowIntensityInput?.addEventListener('input', () => {
     state.settings.shadowIntensity = Number(dom.shadowIntensityInput.value);
+    if (dom.shadowIntensityValue) dom.shadowIntensityValue.textContent = `${state.settings.shadowIntensity}%`;
     scheduleTypographyRefresh();
   });
 
