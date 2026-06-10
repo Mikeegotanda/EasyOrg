@@ -495,13 +495,10 @@ const dom = {
   formatNodeStyleInput: document.getElementById('formatNodeStyleInput'),
   formatPictureUploadInput: document.getElementById('formatPictureUploadInput'),
   chartLogoInput: document.getElementById('chartLogoInput'),
-  showChartLogoInput: document.getElementById('showChartLogoInput'),
-  showChartLegendInput: document.getElementById('showChartLegendInput'),
   orgChartViewInput: document.getElementById('orgChartViewInput'),
   orgChartColorByInput: document.getElementById('orgChartColorByInput'),
   orgChartLegendInput: document.getElementById('orgChartLegendInput'),
   employeePhotosInput: document.getElementById('employeePhotosInput'),
-  legendPositionInput: document.getElementById('legendPositionInput'),
   shapeFillColorInput: document.getElementById('shapeFillColorInput'),
   shapeFillPatternInput: document.getElementById('shapeFillPatternInput'),
   shapeTextColorInput: document.getElementById('shapeTextColorInput'),
@@ -5285,13 +5282,10 @@ function syncControls() {
   if (dom.formatNodeStyleInput) {
     dom.formatNodeStyleInput.value = state.settings.nodeStylePreset || 'visio-basic';
   }
-  if (dom.showChartLogoInput) dom.showChartLogoInput.checked = state.settings.showChartLogo !== false;
-  if (dom.showChartLegendInput) dom.showChartLegendInput.checked = state.settings.showChartLegend !== false;
   if (dom.orgChartViewInput) dom.orgChartViewInput.value = state.settings.orgChartView || 'standard';
   if (dom.orgChartColorByInput) dom.orgChartColorByInput.value = state.settings.orgChartColorBy || 'none';
   if (dom.orgChartLegendInput) dom.orgChartLegendInput.checked = state.settings.showOrgChartBadges !== false;
   if (dom.employeePhotosInput) dom.employeePhotosInput.checked = state.settings.employeePhotos !== false;
-  if (dom.legendPositionInput) dom.legendPositionInput.value = state.settings.legendPosition || 'top-right';
   if (dom.shapeFillColorInput) dom.shapeFillColorInput.value = state.settings.cardBg;
   if (dom.shapeFillPatternInput) dom.shapeFillPatternInput.value = state.settings.cardFillPattern || 'none';
   if (dom.shapeTextColorInput) dom.shapeTextColorInput.value = state.settings.cardTextColor;
@@ -5469,18 +5463,6 @@ function bindControlEvents() {
     notify('Chart logo added.');
   });
 
-  dom.showChartLogoInput?.addEventListener('change', () => {
-    state.settings.showChartLogo = dom.showChartLogoInput.checked;
-    syncControls();
-    render();
-  });
-
-  dom.showChartLegendInput?.addEventListener('change', () => {
-    state.settings.showChartLegend = dom.showChartLegendInput.checked;
-    syncControls();
-    render();
-  });
-
   dom.orgChartViewInput?.addEventListener('change', () => {
     applyOrgChartViewPreset(dom.orgChartViewInput.value);
   });
@@ -5499,13 +5481,6 @@ function bindControlEvents() {
 
   dom.employeePhotosInput?.addEventListener('change', () => {
     state.settings.employeePhotos = dom.employeePhotosInput.checked;
-    syncControls();
-    render();
-  });
-
-  dom.legendPositionInput?.addEventListener('change', () => {
-    state.settings.legendPosition = dom.legendPositionInput.value;
-    state.settings.showChartLegend = dom.legendPositionInput.value !== 'hidden';
     syncControls();
     render();
   });
