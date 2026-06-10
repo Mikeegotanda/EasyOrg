@@ -60,8 +60,9 @@ const PRESETS = {
     parallaxEnabled: false,
     parallaxAmount: 8,
     ambientGlow: false,
-    connectorVisualStyle: 'default',
+    connectorVisualStyle: 'arrow',
     connectorDecoration: 'none',
+    connectorStartPoint: 'none',
     cardVisualType: 'standard',
     avatarTreatment: 'default',
     nodeStylePreset: 'visio-basic',
@@ -134,8 +135,9 @@ const PRESETS = {
     parallaxEnabled: false,
     parallaxAmount: 8,
     ambientGlow: false,
-    connectorVisualStyle: 'default',
+    connectorVisualStyle: 'arrow',
     connectorDecoration: 'none',
+    connectorStartPoint: 'none',
     cardVisualType: 'standard',
     avatarTreatment: 'default'
   },
@@ -198,8 +200,9 @@ const PRESETS = {
     parallaxEnabled: false,
     parallaxAmount: 8,
     ambientGlow: false,
-    connectorVisualStyle: 'rounded',
+    connectorVisualStyle: 'arrow',
     connectorDecoration: 'none',
+    connectorStartPoint: 'none',
     cardVisualType: 'standard',
     avatarTreatment: 'default'
   },
@@ -262,8 +265,9 @@ const PRESETS = {
     parallaxEnabled: false,
     parallaxAmount: 8,
     ambientGlow: false,
-    connectorVisualStyle: 'technical',
+    connectorVisualStyle: 'arrow',
     connectorDecoration: 'none',
+    connectorStartPoint: 'none',
     cardVisualType: 'editorial',
     avatarTreatment: 'default'
   }
@@ -370,6 +374,11 @@ function normalizeSettings(settings) {
   normalized.locationLineHeight = Number.isFinite(Number(normalized.locationLineHeight)) ? Number(normalized.locationLineHeight) : 1.12;
   normalized.cardFillPattern = normalized.cardFillPattern || 'none';
   normalized.cardLineStyle = normalized.cardLineStyle || 'solid';
+  const normalizedEndPoint = normalizeConnectorMarker(normalized.connectorVisualStyle);
+  const normalizedStartPoint = normalizeConnectorMarker(normalized.connectorStartPoint || normalized.connectorDecoration);
+  normalized.connectorVisualStyle = normalizedEndPoint === 'none' ? 'arrow' : normalizedEndPoint;
+  normalized.connectorStartPoint = normalizedStartPoint;
+  normalized.connectorDecoration = normalizedStartPoint;
   normalized.employeeFields = {
     name: true,
     title: normalized.infoVisibility !== 'name-only',
@@ -3019,6 +3028,20 @@ function connectorThicknessValue() {
   return legacyMap[String(raw || '').toLowerCase()] || 4;
 }
 
+function normalizeConnectorMarker(value) {
+  const normalized = String(value || '').toLowerCase();
+  if (normalized === 'dot' || normalized === 'arrow' || normalized === 'none') {
+    return normalized;
+  }
+  if (normalized === 'arrowheads') {
+    return 'arrow';
+  }
+  if (normalized === 'dots') {
+    return 'dot';
+  }
+  return 'none';
+}
+
 function syncConnectorLayerSize() {
   const layerWidth = dom.cardLayer.clientWidth || 1280;
   const layerHeight = dom.cardLayer.clientHeight || 560;
@@ -3034,7 +3057,8 @@ function renderConnectors(layouts) {
   const timings = animationTimings();
   const connectorClass = connectorAnimationClass();
   const visual = connectorVisualProfile();
-  const decoration = state.settings.connectorDecoration || 'none';
+  const startMarker = normalizeConnectorMarker(state.settings.connectorStartPoint || state.settings.connectorDecoration);
+  const endMarker = normalizeConnectorMarker(state.settings.connectorVisualStyle);
   const baseDash =
     state.settings.connectorType === 'dashed'
       ? '9 7'
@@ -3049,7 +3073,8 @@ function renderConnectors(layouts) {
     const delay = pathIndex * Math.round(timings.stepDelay * 0.75);
     pathIndex += 1;
     const dashValue = connectorClass === 'anim-connector-draw' ? '' : connectorClass === 'anim-connector-flow' ? '14 10' : baseDash;
-    const markerEnd = decoration === 'arrowheads' || visual.tapered ? 'url(#connector-arrow)' : '';
+    const markerStart = startMarker === 'arrow' ? 'url(#connector-arrow-start)' : startMarker === 'dot' ? 'url(#connector-dot-start)' : '';
+    const markerEnd = endMarker === 'arrow' ? 'url(#connector-arrow-end)' : endMarker === 'dot' ? 'url(#connector-dot-end)' : '';
     const linecap = visual.linecap || 'round';
     const linejoin = visual.linejoin || 'round';
 
@@ -3060,23 +3085,8 @@ function renderConnectors(layouts) {
     }
 
     paths.push(
-      `<path d="${d}" class="connector-line ${connectorClass}" fill="none" stroke="${stroke}" stroke-width="${width}" opacity="${opacity}" ${dashValue ? `stroke-dasharray="${dashValue}"` : ''} ${markerEnd ? `marker-end="${markerEnd}"` : ''} stroke-linecap="${linecap}" stroke-linejoin="${linejoin}" style="--connector-duration:${timings.connectorDuration}ms;--connector-delay:${delay}ms;"></path>`
+      `<path d="${d}" class="connector-line ${connectorClass}" fill="none" stroke="${stroke}" stroke-width="${width}" opacity="${opacity}" ${dashValue ? `stroke-dasharray="${dashValue}"` : ''} ${markerStart ? `marker-start="${markerStart}"` : ''} ${markerEnd ? `marker-end="${markerEnd}"` : ''} stroke-linecap="${linecap}" stroke-linejoin="${linejoin}" style="--connector-duration:${timings.connectorDuration}ms;--connector-delay:${delay}ms;"></path>`
     );
-
-    if (decoration === 'dots') {
-      decorations.push(`<circle cx="${anchors.toX}" cy="${anchors.toY}" r="${Math.max(2, width - 0.5)}" fill="${stroke}" opacity="0.95"></circle>`);
-    }
-    if (decoration === 'junctions') {
-      decorations.push(`<circle cx="${midX}" cy="${midY}" r="${Math.max(3, width)}" fill="${stroke}" opacity="0.88"></circle>`);
-    }
-    if (decoration === 'labels') {
-      decorations.push(`<text x="${midX + 6}" y="${midY - 6}" class="connector-label">Link</text>`);
-    }
-    if (decoration === 'status') {
-      const palette = ['#26b36a', '#d39c2f', '#dc4d4d'];
-      const color = palette[Math.floor(hashToUnit(`${midX}-${midY}`) * palette.length) % palette.length];
-      decorations.push(`<circle cx="${midX}" cy="${midY}" r="${Math.max(3, width)}" fill="${color}" stroke="#ffffff" stroke-width="1"></circle>`);
-    }
   }
 
   if (state.autoConnect) {
@@ -3100,7 +3110,12 @@ function renderConnectors(layouts) {
     pushPath(fromLayout, toLayout, manualStroke, Math.max(manualWidth, 3), 1);
   });
 
-  const defs = `<defs><marker id="connector-arrow" markerWidth="10" markerHeight="8" refX="8" refY="4" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L10,4 L0,8 z" fill="${state.settings.accentColor}"></path></marker></defs>`;
+  const defs = `<defs>
+    <marker id="connector-arrow-start" markerWidth="10" markerHeight="8" refX="2" refY="4" orient="auto" markerUnits="strokeWidth"><path d="M10,0 L0,4 L10,8 z" fill="${state.settings.accentColor}"></path></marker>
+    <marker id="connector-arrow-end" markerWidth="10" markerHeight="8" refX="8" refY="4" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L10,4 L0,8 z" fill="${state.settings.accentColor}"></path></marker>
+    <marker id="connector-dot-start" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto" markerUnits="strokeWidth"><circle cx="4" cy="4" r="3" fill="${state.settings.accentColor}"></circle></marker>
+    <marker id="connector-dot-end" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto" markerUnits="strokeWidth"><circle cx="4" cy="4" r="3" fill="${state.settings.accentColor}"></circle></marker>
+  </defs>`;
   dom.connectorLayer.innerHTML = `${defs}${paths.join('')}${decorations.join('')}`;
 
   if (connectorClass === 'anim-connector-draw') {
@@ -5380,8 +5395,8 @@ function syncControls() {
   setChecked(dom.parallaxEnabledInput, state.settings.parallaxEnabled === true);
   setValue(dom.parallaxAmountInput, String(state.settings.parallaxAmount ?? 8));
   setChecked(dom.ambientGlowInput, state.settings.ambientGlow === true);
-  setValue(dom.connectorVisualStyleInput, state.settings.connectorVisualStyle || 'default');
-  setValue(dom.connectorDecorationInput, state.settings.connectorDecoration || 'none');
+  setValue(dom.connectorVisualStyleInput, normalizeConnectorMarker(state.settings.connectorVisualStyle));
+  setValue(dom.connectorDecorationInput, normalizeConnectorMarker(state.settings.connectorStartPoint || state.settings.connectorDecoration));
   setValue(dom.cardVisualTypeInput, state.settings.cardVisualType || 'standard');
   setValue(dom.avatarTreatmentInput, state.settings.avatarTreatment || 'default');
   setValue(dom.bgColorInput, state.settings.bgColor);
@@ -5786,7 +5801,7 @@ function bindControlEvents() {
   });
 
   dom.connectorDecorationInput?.addEventListener('change', () => {
-    state.settings.connectorDecoration = dom.connectorDecorationInput.value;
+    state.settings.connectorStartPoint = dom.connectorDecorationInput.value;
     render();
   });
 
