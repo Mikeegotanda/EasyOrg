@@ -627,6 +627,7 @@ const dom = {
   cardLayoutInput: document.getElementById('cardLayoutInput'),
   avatarStyleInput: document.getElementById('avatarStyleInput'),
   cardElevationInput: document.getElementById('cardElevationInput'),
+  cardElevationValue: document.getElementById('cardElevationValue'),
   backgroundImageInput: document.getElementById('backgroundImageInput'),
   autoConnectToggle: document.getElementById('autoConnectToggle'),
   undoBtn: document.getElementById('undoBtn'),
@@ -2782,6 +2783,21 @@ function onCardClick(nodeId) {
   state.selectedCardId = null;
   state.selectedMemberId = null;
   render();
+}
+
+function getElevationPresetLabel(value) {
+  const index = Math.max(0, Math.min(3, Number(value) || 0));
+  return ['Flat', 'Soft Shadow', 'Floating', 'Glass'][index];
+}
+
+function getElevationPresetValue(value) {
+  const index = Math.max(0, Math.min(3, Number(value) || 0));
+  return ['flat', 'soft', 'floating', 'glass'][index];
+}
+
+function getElevationSliderValue(value) {
+  const map = { flat: 0, soft: 1, floating: 2, glass: 3 };
+  return map[value] ?? 1;
 }
 
 function getConnectorAnchors(fromLayout, toLayout) {
@@ -5353,7 +5369,8 @@ function syncControls() {
   setValue(dom.cardHeightScaleInput, String(state.settings.cardHeightScale ?? state.settings.cardScale ?? 100));
   setValue(dom.cardLayoutInput, state.settings.cardLayout);
   setValue(dom.avatarStyleInput, state.settings.avatarStyle);
-  setValue(dom.cardElevationInput, state.settings.cardElevation);
+  setValue(dom.cardElevationInput, String(getElevationSliderValue(state.settings.cardElevation)));
+  if (dom.cardElevationValue) dom.cardElevationValue.textContent = getElevationPresetLabel(dom.cardElevationInput?.value);
   setChecked(dom.autoConnectToggle, state.autoConnect);
   syncTypographySliderState();
 }
@@ -5902,11 +5919,11 @@ function bindControlEvents() {
     render();
   });
 
-  dom.cardElevationInput?.addEventListener('change', () => {
-    state.settings.cardElevation = dom.cardElevationInput.value;
+  dom.cardElevationInput?.addEventListener('input', () => {
+    state.settings.cardElevation = getElevationPresetValue(dom.cardElevationInput.value);
     state.settings.nodeStylePreset = 'custom';
-    syncControls();
-    render();
+    if (dom.cardElevationValue) dom.cardElevationValue.textContent = getElevationPresetLabel(dom.cardElevationInput.value);
+    scheduleTypographyRefresh();
   });
 
   dom.autoConnectToggle?.addEventListener('change', () => {

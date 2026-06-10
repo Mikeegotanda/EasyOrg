@@ -533,12 +533,8 @@
             </div>
             <div class="field-stack compact">
               <label for="cardElevationInput">Card Elevation</label>
-              <select id="cardElevationInput">
-                <option value="flat">Flat</option>
-                <option value="soft">Soft Shadow</option>
-                <option value="floating">Floating</option>
-                <option value="glass">Glass</option>
-              </select>
+              <input id="cardElevationInput" type="range" min="0" max="3" step="1" value="1" />
+              <div class="slider-meta"><span id="cardElevationValue">Soft Shadow</span></div>
             </div>
           </div>
           <div class="format-subhead">Employee Fields</div>
