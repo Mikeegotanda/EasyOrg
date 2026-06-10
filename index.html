@@ -1,0 +1,1242 @@
+﻿<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EasyOrg</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="styles.css?v=20260609-01" />
+</head>
+<body>
+  <header class="app-topbar">
+    <div class="topbar-brand">
+      <img class="brand-logo" src="assets/EasyOrg_Logo_BlkRed.png" alt="EasyOrg by JRM Construction" />
+    </div>
+    <nav class="topbar-nav" aria-label="Primary">
+      <button class="topbar-nav-btn is-active" type="button" data-topbar-view="canvas" aria-current="page" aria-label="Canvas" title="Canvas">
+        <span class="topbar-nav-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+            <rect x="4" y="4" width="7" height="7" rx="2"></rect>
+            <rect x="13" y="4" width="7" height="7" rx="2"></rect>
+            <rect x="4" y="13" width="7" height="7" rx="2"></rect>
+            <rect x="13" y="13" width="7" height="7" rx="2"></rect>
+          </svg>
+        </span>
+      </button>
+      <button class="topbar-nav-btn" type="button" data-topbar-view="dashboard" aria-label="Dashboard" title="Dashboard">
+        <span class="topbar-nav-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+            <path d="M4 7h16"></path>
+            <path d="M4 12h16"></path>
+            <path d="M4 17h16"></path>
+            <circle cx="7" cy="7" r="1.2"></circle>
+            <circle cx="12" cy="12" r="1.2"></circle>
+            <circle cx="17" cy="17" r="1.2"></circle>
+          </svg>
+        </span>
+      </button>
+    </nav>
+  </header>
+  <section id="view-canvas" class="app-page is-active" data-page="canvas">
+  <div class="app-shell">
+    <aside class="panel panel-left">
+      <div class="panel-header">
+        <h2>Team Library</h2>
+        <p>Drag people onto the slide canvas</p>
+      </div>
+
+      <details class="add-member-box">
+        <summary>Data Upload</summary>
+        <div class="field-stack compact">
+          <label for="libraryZipInput">Team Management Data ZIP</label>
+          <div class="upload-action-row">
+            <input id="libraryZipInput" type="file" accept=".zip,application/zip" />
+            <button id="loadLibraryZipBtn" class="btn btn-primary" type="button">Load ZIP</button>
+          </div>
+        </div>
+        <div id="libraryUploadStatus" class="inline-status" role="status" aria-live="polite">
+          Choose an EasyOrg ZIP to load the team library.
+        </div>
+        <div class="section-divider"></div>
+        <details id="memberFormBox" class="embedded-upload-box">
+          <summary id="memberFormSummary">Build From Image</summary>
+          <div class="field-stack compact">
+            <label for="referenceChartInput">Reference Org Chart Image</label>
+            <input id="referenceChartInput" type="file" accept="image/*" />
+          </div>
+          <button id="buildFromImageBtn" class="btn btn-primary full-span" type="button">Create Chart From Image</button>
+        </details>
+      </details>
+
+      <details class="add-member-box library-dropdown" open>
+        <summary>Team Members</summary>
+        <div class="library-filter-grid">
+          <div class="field-stack compact">
+            <label for="memberSearch">Search</label>
+            <input id="memberSearch" type="text" placeholder="Initials, name, title, department" />
+          </div>
+          <div class="field-stack compact">
+            <label for="memberDepartmentFilter">Department</label>
+            <select id="memberDepartmentFilter"></select>
+          </div>
+          <div class="field-stack compact">
+            <label for="memberPositionFilter">Position</label>
+            <select id="memberPositionFilter"></select>
+          </div>
+        </div>
+        <div id="libraryList" class="library-list"></div>
+      </details>
+
+    </aside>
+
+    <main class="center-stage">
+      <div class="canvas-toolbar">
+        <div class="toolbar-group">
+          <button id="clearChartBtn" class="btn toolbar-btn" type="button" aria-label="Clear canvas" title="Clear canvas">
+            <span class="toolbar-btn-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true"><path d="M6 7h12" /><path d="M9 7V5h6v2" /><path d="M8 7l1 12h6l1-12" /><path d="M10 10v6" /><path d="M14 10v6" /></svg>
+            </span>
+            <span class="sr-only">Clear</span>
+          </button>
+          <button id="clearCanvasBtn" class="btn toolbar-btn" type="button" onclick="window.startNewCanvas && window.startNewCanvas(); return false;" aria-label="New canvas" title="New canvas">
+            <span class="toolbar-btn-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true"><path d="M12 5v14" /><path d="M5 12h14" /><path d="M7 4h10l4 4v12H3V8z" /></svg>
+            </span>
+            <span class="sr-only">New Canvas</span>
+          </button>
+          <button id="saveChartBtn" class="btn toolbar-btn" type="button" aria-label="Save chart" title="Save chart">
+            <span class="toolbar-btn-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true"><path d="M5 4h11l3 3v13H5z" /><path d="M8 4v6h8V4" /><path d="M8 18h8" /></svg>
+            </span>
+            <span class="sr-only">Save Chart</span>
+          </button>
+          <button id="exportChartBtn" class="btn btn-primary toolbar-btn toolbar-btn-primary" type="button" aria-label="Export" title="Export" aria-expanded="false" aria-haspopup="menu">
+            <span class="toolbar-btn-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true"><path d="M12 4v10"></path><path d="m8 8 4-4 4 4"></path><path d="M5 14v4h14v-4"></path></svg>
+            </span>
+            <span class="sr-only">Export</span>
+          </button>
+          <div id="exportMenu" class="export-menu is-hidden" role="menu" aria-label="Export options">
+            <button id="exportXlsxBtn" class="btn export-menu-btn" type="button" role="menuitem">Excel Spreadsheet</button>
+            <button id="exportMenuPngBtn" class="btn export-menu-btn" type="button" role="menuitem">PNG Image</button>
+            <button id="exportMenuSvgBtn" class="btn export-menu-btn" type="button" role="menuitem">SVG Image</button>
+            <button id="exportMenuPptxBtn" class="btn export-menu-btn" type="button" role="menuitem">PowerPoint Document</button>
+            <button id="exportMenuPdfBtn" class="btn export-menu-btn" type="button" role="menuitem">PDF Document</button>
+          </div>
+        </div>
+        <div class="toolbar-divider" aria-hidden="true"></div>
+        <div class="toolbar-group">
+          <button id="zoomOutBtn" class="btn icon-btn toolbar-btn" type="button" aria-label="Zoom out" title="Zoom out">
+            <span class="toolbar-btn-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true"><circle cx="11" cy="11" r="6.5" /><path d="M15.5 15.5 20 20" /><path d="M8 11h6" /></svg>
+            </span>
+          </button>
+          <button id="zoomResetBtn" class="btn zoom-value" type="button">100%</button>
+          <button id="zoomInBtn" class="btn icon-btn toolbar-btn" type="button" aria-label="Zoom in" title="Zoom in">
+            <span class="toolbar-btn-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true"><circle cx="11" cy="11" r="6.5" /><path d="M15.5 15.5 20 20" /><path d="M11 8v6" /><path d="M8 11h6" /></svg>
+            </span>
+          </button>
+          <button id="undoBtn" class="btn toolbar-btn history-btn" type="button" aria-label="Undo" title="Undo" disabled>
+            <span class="toolbar-btn-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true"><path d="M9 7 4 12l5 5" /><path d="M5 12h8c3.86 0 7 3.14 7 7" /></svg>
+            </span>
+            <span class="sr-only">Undo</span>
+          </button>
+          <button id="redoBtn" class="btn toolbar-btn history-btn" type="button" aria-label="Redo" title="Redo" disabled>
+            <span class="toolbar-btn-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true"><path d="m15 7 5 5-5 5" /><path d="M19 12h-8c-3.86 0-7 3.14-7 7" /></svg>
+            </span>
+            <span class="sr-only">Redo</span>
+          </button>
+          <button id="fitAllBtn" class="btn toolbar-btn" type="button" aria-label="Fit all" title="Fit all">
+            <span class="toolbar-btn-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true"><path d="M5 9V5h4" /><path d="M19 9V5h-4" /><path d="M5 15v4h4" /><path d="M19 15v4h-4" /><path d="M5 5l6 6" /><path d="m13 13 6 6" /></svg>
+            </span>
+            <span class="sr-only">Fit all</span>
+          </button>
+          <button id="cleanupLayoutBtn" class="btn toolbar-btn" type="button" aria-label="Clean up connectors" title="Clean up connectors">
+            <span class="toolbar-btn-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true"><path d="M5 18h14" /><path d="M7 16V8l4 4 4-6 4 6" /><path d="M9 6 5 2" /></svg>
+            </span>
+            <span class="sr-only">Clean Up</span>
+          </button>
+          <button id="toggleMinimapBtn" class="btn toolbar-btn" type="button" aria-label="Hide mini map" title="Hide mini map" aria-pressed="true">
+            <span class="toolbar-btn-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="3" /><path d="M4 16h16" /></svg>
+            </span>
+            <span class="sr-only toolbar-btn-label">Hide Mini Map</span>
+          </button>
+          <button id="toggleLegendBtn" class="btn toolbar-btn" type="button" aria-label="Hide legend" title="Hide legend" aria-pressed="true">
+            <span class="toolbar-btn-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true"><path d="M4 6h6" /><path d="M4 12h6" /><path d="M4 18h6" /><circle cx="14" cy="6" r="1.6" /><circle cx="14" cy="12" r="1.6" /><circle cx="14" cy="18" r="1.6" /></svg>
+            </span>
+            <span class="sr-only toolbar-btn-label">Hide Legend</span>
+          </button>
+          <button id="toggleReportCountsBtn" class="btn toolbar-btn" type="button" aria-label="Show report counts" title="Show report counts" aria-pressed="false">
+            <span class="toolbar-btn-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true"><path d="M4 7h8" /><path d="M4 12h6" /><path d="M4 17h10" /><circle cx="17" cy="7" r="2.3" /><path d="M17 11.2v4.1" /><path d="M14.6 13.3h4.8" /></svg>
+            </span>
+            <span class="sr-only toolbar-btn-label">Show Report Counts</span>
+          </button>
+          <button id="helpBtn" class="btn icon-btn toolbar-btn" type="button" aria-label="Help" title="Help">
+            <span class="toolbar-btn-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true"><circle cx="12" cy="12" r="8.5" /><path d="M9.8 9.4a2.3 2.3 0 1 1 4.2 1.3c-.7.9-1.8 1.3-1.8 2.8" /><path d="M12 17.2h0" /></svg>
+            </span>
+            <span class="sr-only">Help</span>
+          </button>
+        </div>
+        <div class="toolbar-divider" aria-hidden="true"></div>
+        <div class="toolbar-group toolbar-group-spacer">
+          <span id="connectHint" class="hint">Tip: Click one card, then another card to create a manual connector.</span>
+        </div>
+      </div>
+
+      <div id="previewHost" class="preview-host">
+        <div id="canvasWorld" class="canvas-world">
+          <div id="slidePreview" class="slide-preview">
+            <div id="slideHeader" class="slide-header">
+            </div>
+
+            <div id="slideBody" class="slide-body">
+              <svg id="connectorLayer" class="connector-layer" viewBox="0 0 1280 720" preserveAspectRatio="none"></svg>
+              <div id="cardLayer" class="card-layer"></div>
+              <div id="dragDropGuide" class="drag-drop-guide is-hidden" aria-hidden="true"></div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+      <div id="canvasMinimap" class="canvas-minimap" aria-label="Canvas minimap">
+        <div id="minimapContent" class="minimap-content"></div>
+        <div id="minimapViewport" class="minimap-viewport"></div>
+      </div>
+    </main>
+
+    <aside class="panel panel-right">
+      <div class="panel-header">
+        <h2>Canvas Controls</h2>
+        <p>Layout, style, and exports</p>
+      </div>
+
+      <details class="control-dropdown">
+        <summary>Format</summary>
+        <div class="control-section format-org-section">
+          <div class="field-stack compact">
+            <label for="formatDirectionInput">Directional Layout</label>
+            <select id="formatDirectionInput">
+              <option value="top-down">Top Down</option>
+              <option value="left-right">Left to Right</option>
+              <option value="right-left">Right to Left</option>
+              <option value="bottom-up">Bottom Up</option>
+            </select>
+          </div>
+          <div class="grid-2">
+            <div class="field-stack compact">
+              <label for="formatAdvancedLayoutInput">Advanced Layout</label>
+              <select id="formatAdvancedLayoutInput">
+                <option value="strict">Classic Hierarchy</option>
+                <option value="symmetrical">Centered Pyramid</option>
+                <option value="swimlane">Swimlane</option>
+                <option value="clustered">Clustered Teams</option>
+                <option value="masonry">Hanging Columns</option>
+                <option value="radial">Radial</option>
+                <option value="organic">Organic Board</option>
+                <option value="physics">Freeform Board</option>
+              </select>
+            </div>
+            <div class="field-stack compact">
+              <label for="formatNodeStyleInput">Node Style</label>
+              <select id="formatNodeStyleInput">
+                <option value="visio-basic">Basic Photo</option>
+                <option value="visio-compact">Compact Photo</option>
+                <option value="visio-nameplate">Nameplate</option>
+                <option value="visio-title-block">Title Block</option>
+                <option value="visio-outline">Outline</option>
+                <option value="visio-picture-top">Picture Top</option>
+                <option value="teamgen-glass">Glass</option>
+                <option value="teamgen-filled">Filled Accent</option>
+                <option value="teamgen-blueprint">Blueprint</option>
+                <option value="teamgen-editorial">Editorial</option>
+                <option value="custom">Custom</option>
+              </select>
+            </div>
+          </div>
+          <div class="field-stack compact">
+            <label for="formatPictureUploadInput">Upload Pictures</label>
+            <input id="formatPictureUploadInput" type="file" accept="image/*" multiple />
+          </div>
+          <div class="field-stack compact">
+            <label for="chartLogoInput">Logo</label>
+            <input id="chartLogoInput" type="file" accept="image/*" />
+          </div>
+          <div class="field-stack compact">
+            <label for="layoutModeInput">Layout Mode</label>
+            <select id="layoutModeInput">
+              <option value="strict">Strict Hierarchy</option>
+              <option value="symmetrical">Symmetrical</option>
+              <option value="editorial">Editorial</option>
+              <option value="clustered">Clustered</option>
+              <option value="masonry">Masonry</option>
+              <option value="organic">Organic</option>
+              <option value="radial">Radial</option>
+              <option value="hexagonal">Hexagonal</option>
+              <option value="swimlane">Swimlane</option>
+              <option value="physics">Physics Based</option>
+            </select>
+          </div>
+          <div class="grid-2">
+            <div class="field-stack compact">
+              <label for="formalOrganicInput">Formal ↔ Organic</label>
+              <input id="formalOrganicInput" type="range" min="0" max="100" />
+            </div>
+            <div class="field-stack compact">
+              <label for="symmetryDynamicInput">Symmetrical ↔ Dynamic</label>
+              <input id="symmetryDynamicInput" type="range" min="0" max="100" />
+            </div>
+          </div>
+          <div class="field-stack compact">
+            <label for="structureFreeformInput">Structured ↔ Freeform</label>
+            <input id="structureFreeformInput" type="range" min="0" max="100" />
+          </div>
+          <div class="grid-2">
+            <div class="field-stack compact">
+              <label for="shadowIntensityInput">Shadow Intensity</label>
+              <input id="shadowIntensityInput" type="range" min="0" max="220" />
+            </div>
+            <div class="field-stack compact">
+              <label for="blurStrengthInput">Blur Strength</label>
+              <input id="blurStrengthInput" type="range" min="0" max="24" />
+            </div>
+          </div>
+          <div class="grid-2">
+            <div class="field-stack compact">
+              <label for="backgroundDepthInput">Background Depth</label>
+              <input id="backgroundDepthInput" type="range" min="0" max="100" />
+            </div>
+            <div class="field-stack compact">
+              <label for="parallaxAmountInput">Parallax Amount</label>
+              <input id="parallaxAmountInput" type="range" min="0" max="22" />
+            </div>
+          </div>
+          <div class="grid-2">
+            <label class="check-wrap">
+              <input id="floatingCardsInput" type="checkbox" checked />
+              Floating Cards
+            </label>
+            <label class="check-wrap">
+              <input id="parallaxEnabledInput" type="checkbox" />
+              Parallax
+            </label>
+          </div>
+          <div class="grid-2">
+            <label class="check-wrap">
+              <input id="ambientGlowInput" type="checkbox" />
+              Ambient Glow
+            </label>
+          </div>
+          <div class="grid-2">
+            <label class="check-wrap">
+              <input id="showChartLogoInput" type="checkbox" checked />
+              Show Logo
+            </label>
+            <label class="check-wrap">
+              <input id="showChartLegendInput" type="checkbox" checked />
+              Show Legend
+            </label>
+          </div>
+          <div class="format-subhead">OrgChart Views</div>
+          <div class="grid-2">
+            <div class="field-stack compact">
+              <label for="orgChartViewInput">Chart View</label>
+              <select id="orgChartViewInput">
+                <option value="standard">Standard Org Chart</option>
+                <option value="branded">Branded Custom Chart</option>
+                <option value="directory">Employee Directory</option>
+                <option value="nine-box">9-Box Talent Grid</option>
+                <option value="span">Span of Control</option>
+                <option value="employment">Employment Type</option>
+                <option value="dei">DEI Data View</option>
+                <option value="hybrid">Hybrid / Location</option>
+                <option value="budget">Budget / Salary</option>
+                <option value="matrix">Matrix Org Chart</option>
+                <option value="simple">Simple Clean Chart</option>
+              </select>
+            </div>
+            <div class="field-stack compact">
+              <label for="orgChartColorByInput">Color By</label>
+              <select id="orgChartColorByInput">
+                <option value="none">None</option>
+                <option value="department">Department</option>
+                <option value="position">Position</option>
+                <option value="location">Location</option>
+                <option value="employmentType">Employment Type</option>
+                <option value="performance">Performance</option>
+                <option value="diversityGroup">DEI Group</option>
+                <option value="span">Span of Control</option>
+                <option value="budget">Budget</option>
+              </select>
+            </div>
+          </div>
+          <label class="check-wrap">
+            <input id="orgChartLegendInput" type="checkbox" checked />
+            Show View Badges
+          </label>
+          <div class="grid-2">
+            <label class="check-wrap">
+              <input id="employeePhotosInput" type="checkbox" checked />
+              Employee Photos
+            </label>
+            <div class="field-stack compact">
+              <label for="legendPositionInput">Legend Position</label>
+              <select id="legendPositionInput">
+                <option value="top-right">Top Right</option>
+                <option value="bottom-right">Bottom Right</option>
+                <option value="bottom-left">Bottom Left</option>
+                <option value="hidden">Hidden</option>
+              </select>
+            </div>
+          </div>
+          <div class="format-subhead">Shape Appearance</div>
+          <div class="grid-2">
+            <div class="field-stack compact">
+              <label for="shapeFillColorInput">Fill Color</label>
+              <input id="shapeFillColorInput" type="color" />
+            </div>
+            <div class="field-stack compact">
+              <label for="shapeFillPatternInput">Fill Pattern</label>
+              <select id="shapeFillPatternInput">
+                <option value="none">None</option>
+                <option value="subtle-grid">Subtle Grid</option>
+                <option value="diagonal">Diagonal</option>
+                <option value="crosshatch">Crosshatch</option>
+                <option value="dots">Dots</option>
+                <option value="blueprint">Blueprint</option>
+              </select>
+            </div>
+          </div>
+          <div class="grid-2">
+            <div class="field-stack compact">
+              <label for="shapeTextColorInput">Text Color</label>
+              <input id="shapeTextColorInput" type="color" />
+            </div>
+            <div class="field-stack compact">
+              <label for="shapeSubTextColorInput">Secondary Text</label>
+              <input id="shapeSubTextColorInput" type="color" />
+            </div>
+          </div>
+          <div class="field-stack compact">
+            <label for="shapeFontInput">Shape Font</label>
+            <select id="shapeFontInput">
+            <option value="Arial">Arial</option>
+            <option value="Arial Black">Arial Black</option>
+            <option value="Georgia">Georgia</option>
+              <option value="Verdana">Verdana</option>
+              <option value="Tahoma">Tahoma</option>
+            </select>
+          </div>
+          <div class="grid-2">
+            <div class="field-stack compact">
+              <label for="shapeLineColorInput">Line Color</label>
+              <input id="shapeLineColorInput" type="color" />
+            </div>
+            <div class="field-stack compact">
+              <label for="shapeLineStyleInput">Line Style</label>
+              <select id="shapeLineStyleInput">
+                <option value="solid">Solid</option>
+                <option value="dashed">Dashed</option>
+                <option value="dotted">Dotted</option>
+                <option value="double">Double</option>
+                <option value="none">None</option>
+              </select>
+            </div>
+          </div>
+          <div class="field-stack compact">
+            <label for="shapeLineWeightInput">Line Weight</label>
+            <input id="shapeLineWeightInput" type="range" min="0" max="8" />
+          </div>
+          <div class="grid-2">
+            <label class="check-wrap">
+              <input id="shapeShadowInput" type="checkbox" />
+              Shadow
+            </label>
+            <div class="field-stack compact">
+              <label for="shapeShadowIntensityInput">Shadow Strength</label>
+              <input id="shapeShadowIntensityInput" type="range" min="0" max="220" />
+            </div>
+          </div>
+          <div class="format-subhead">Employee Fields</div>
+          <div class="field-toggle-grid">
+            <label class="check-wrap">
+              <input id="fieldNameInput" type="checkbox" checked />
+              Name
+            </label>
+            <label class="check-wrap">
+              <input id="fieldTitleInput" type="checkbox" checked />
+              Title
+            </label>
+            <label class="check-wrap">
+              <input id="fieldDepartmentInput" type="checkbox" />
+              Department
+            </label>
+            <label class="check-wrap">
+              <input id="fieldTelephoneInput" type="checkbox" />
+              Telephone
+            </label>
+            <label class="check-wrap">
+              <input id="fieldEmailInput" type="checkbox" />
+              Email
+            </label>
+            <label class="check-wrap">
+              <input id="fieldAddressInput" type="checkbox" />
+              Address
+            </label>
+            <label class="check-wrap">
+              <input id="fieldLocationInput" type="checkbox" />
+              Location
+            </label>
+          </div>
+        </div>
+      </details>
+
+      <details class="control-dropdown">
+        <summary>Card Style</summary>
+        <div class="control-section">
+          <div class="grid-2">
+            <div class="field-stack compact">
+              <label for="accentColorInput">Accent</label>
+              <input id="accentColorInput" type="color" />
+            </div>
+            <div class="field-stack compact">
+              <label for="cardBgInput">Card Background</label>
+              <input id="cardBgInput" type="color" />
+            </div>
+          </div>
+          <div class="grid-2">
+            <div class="field-stack compact">
+              <label for="cardShapeInput">Card Shape</label>
+              <select id="cardShapeInput">
+                <option value="square">Square</option>
+                <option value="rounded">Rounded</option>
+                <option value="soft">Soft Rounded</option>
+                <option value="pill">Pill</option>
+              </select>
+            </div>
+            <div class="field-stack compact">
+              <label for="cardLayoutInput">Card Layout</label>
+              <select id="cardLayoutInput">
+                <option value="avatar-left">Avatar Left</option>
+                <option value="avatar-top">Avatar Top</option>
+                <option value="compact">Compact</option>
+              </select>
+            </div>
+          </div>
+          <div class="grid-2">
+            <div class="field-stack compact">
+              <label for="cardVisualTypeInput">Card Visual Type</label>
+              <select id="cardVisualTypeInput">
+                <option value="standard">Standard</option>
+                <option value="glass">Glass</option>
+                <option value="elevated">Elevated</option>
+                <option value="minimal">Minimal</option>
+                <option value="outline">Outline</option>
+                <option value="filled">Filled</option>
+                <option value="split">Split Panel</option>
+                <option value="stack">Stack Card</option>
+                <option value="frosted">Frosted</option>
+                <option value="gradient">Gradient</option>
+                <option value="blueprint">Blueprint</option>
+                <option value="editorial">Editorial</option>
+              </select>
+            </div>
+            <div class="field-stack compact">
+              <label for="avatarTreatmentInput">Avatar Treatment</label>
+              <select id="avatarTreatmentInput">
+                <option value="default">Default</option>
+                <option value="circle">Circle</option>
+                <option value="rounded">Rounded</option>
+                <option value="square">Square</option>
+                <option value="monochrome">Monochrome</option>
+                <option value="duotone">Duotone</option>
+                <option value="cutout">Background Cutout</option>
+                <option value="floating">Floating Portrait</option>
+                <option value="hidden">No Avatar</option>
+                <option value="full-bleed">Full Bleed Headshot</option>
+              </select>
+            </div>
+          </div>
+          <div class="grid-2">
+            <div class="field-stack compact">
+              <label for="avatarStyleInput">Avatar Style</label>
+              <select id="avatarStyleInput">
+                <option value="rounded">Rounded Square</option>
+                <option value="circle">Circle</option>
+                <option value="square">Square</option>
+                <option value="hidden">Hidden</option>
+              </select>
+            </div>
+            <div class="field-stack compact">
+              <label for="cardElevationInput">Card Elevation</label>
+              <select id="cardElevationInput">
+                <option value="flat">Flat</option>
+                <option value="soft">Soft Shadow</option>
+                <option value="floating">Floating</option>
+                <option value="glass">Glass</option>
+              </select>
+            </div>
+          </div>
+          <div class="field-stack compact">
+            <label for="infoVisibilityInput">Information Visibility</label>
+            <select id="infoVisibilityInput">
+              <option value="name-role">Name + Role</option>
+              <option value="name-only">Name Only</option>
+              <option value="name-role-dept">Name + Role + Department</option>
+            </select>
+          </div>
+          <div class="grid-2">
+            <label class="check-wrap">
+              <input id="cardShadowInput" type="checkbox" checked />
+              Card Shadow
+            </label>
+            <label class="check-wrap">
+              <input id="cardOutlineInput" type="checkbox" checked />
+              Card Outline
+            </label>
+          </div>
+        </div>
+      </details>
+
+      <details class="control-dropdown">
+        <summary>Connectors</summary>
+        <div class="control-section">
+          <label class="check-wrap">
+            <input id="autoConnectToggle" type="checkbox" checked />
+            Auto connectors
+          </label>
+          <div class="grid-2">
+            <div class="field-stack compact">
+              <label for="connectorStyleInput">Connector Style</label>
+              <select id="connectorStyleInput">
+                <option value="orthogonal">Orthogonal</option>
+                <option value="straight">Straight</option>
+                <option value="curved">Curved</option>
+                <option value="stepped">Stepped</option>
+              </select>
+            </div>
+            <div class="field-stack compact">
+              <label for="connectorTypeInput">Connector Type</label>
+              <select id="connectorTypeInput">
+                <option value="solid">Solid</option>
+                <option value="dashed">Dashed</option>
+              </select>
+            </div>
+          </div>
+          <div class="field-stack compact">
+            <label for="connectorWeightInput">Connector Weight</label>
+            <select id="connectorWeightInput">
+              <option value="thin">Thin</option>
+              <option value="medium">Medium</option>
+              <option value="bold">Bold</option>
+            </select>
+          </div>
+          <div class="grid-2">
+            <div class="field-stack compact">
+              <label for="connectorVisualStyleInput">Line Personality</label>
+              <select id="connectorVisualStyleInput">
+                <option value="default">Default</option>
+                <option value="sharp">Sharp</option>
+                <option value="rounded">Rounded</option>
+                <option value="organic">Organic</option>
+                <option value="technical">Technical</option>
+                <option value="hand-drawn">Hand Drawn</option>
+                <option value="double">Double Line</option>
+                <option value="dotted">Dotted</option>
+                <option value="segmented">Segmented</option>
+                <option value="tapered">Tapered</option>
+              </select>
+            </div>
+            <div class="field-stack compact">
+              <label for="connectorDecorationInput">Decorations</label>
+              <select id="connectorDecorationInput">
+                <option value="none">None</option>
+                <option value="arrowheads">Arrowheads</option>
+                <option value="dots">Dots</option>
+                <option value="junctions">Junction Nodes</option>
+                <option value="labels">Labels</option>
+                <option value="status">Status Indicators</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </details>
+
+      <details class="control-dropdown">
+        <summary>Typography</summary>
+        <div class="control-section">
+          <div class="text-preview-row">
+            <div class="text-preview-label">Preview</div>
+            <div id="typographyPreview" class="typography-preview">
+              <div class="typography-preview-title">Executive Team</div>
+              <div class="typography-preview-body">
+                <div class="typography-preview-name">Avery Stone</div>
+                <div class="typography-preview-role">Project Director</div>
+              </div>
+            </div>
+          </div>
+          <div class="typography-group" data-typography-field="title">
+            <div class="section-title-row">
+              <div class="section-title">Title Text</div>
+            </div>
+            <div class="control-subgrid">
+              <div class="field-stack compact">
+                <label for="headingColorInput">Title Color</label>
+                <input id="headingColorInput" type="color" />
+              </div>
+              <div class="field-stack compact">
+                <label for="headingFontInput">Title Font</label>
+                <select id="headingFontInput"></select>
+              </div>
+              <div class="field-stack compact">
+                <label for="headingWeightInput">Title Weight</label>
+                <select id="headingWeightInput">
+                  <option value="0">None</option>
+                  <option value="600">Semi Bold</option>
+                  <option value="700">Bold</option>
+                  <option value="800">Extra Bold</option>
+                </select>
+              </div>
+              <div class="field-stack compact slider-field">
+                <label for="headingSizeInput">Title Size <span id="headingSizeValue" class="slider-value"></span></label>
+                <input id="headingSizeInput" class="pro-slider" type="range" min="24" max="88" />
+              </div>
+              <div class="field-stack compact slider-field">
+                <label for="headingLineHeightInput">Title Line Height <span id="headingLineHeightValue" class="slider-value"></span></label>
+                <input id="headingLineHeightInput" class="pro-slider" type="range" min="90" max="140" />
+              </div>
+              <div class="field-stack compact slider-field">
+                <label for="headingTrackingInput">Title Letter Spacing <span id="headingTrackingValue" class="slider-value"></span></label>
+                <input id="headingTrackingInput" class="pro-slider" type="range" min="-4" max="8" />
+              </div>
+            </div>
+          </div>
+          <div class="section-divider"></div>
+          <div class="typography-group" data-typography-field="name">
+            <div class="section-title-row">
+              <div class="section-title">Card Text</div>
+            </div>
+            <div class="control-subgrid">
+              <div class="field-stack compact">
+                <label for="cardTextColorInput">Name Color</label>
+                <input id="cardTextColorInput" type="color" />
+              </div>
+              <div class="field-stack compact">
+                <label for="cardFontInput">Card Font</label>
+                <select id="cardFontInput"></select>
+              </div>
+              <div class="field-stack compact">
+                <label for="nameWeightInput">Name Weight</label>
+                <select id="nameWeightInput">
+                  <option value="0">None</option>
+                  <option value="600">Semi Bold</option>
+                  <option value="700">Bold</option>
+                  <option value="800">Extra Bold</option>
+                </select>
+              </div>
+              <div class="field-stack compact slider-field">
+                <label for="nameSizeInput">Name Size <span id="nameSizeValue" class="slider-value"></span></label>
+                <input id="nameSizeInput" class="pro-slider" type="range" min="14" max="34" />
+              </div>
+              <div class="field-stack compact slider-field">
+                <label for="titleSizeInput">Role Size <span id="roleSizeValue" class="slider-value"></span></label>
+                <input id="titleSizeInput" class="pro-slider" type="range" min="12" max="30" />
+              </div>
+              <div class="field-stack compact slider-field">
+                <label for="nameLineHeightInput">Name Line Height <span id="nameLineHeightValue" class="slider-value"></span></label>
+                <input id="nameLineHeightInput" class="pro-slider" type="range" min="95" max="145" />
+              </div>
+              <div class="field-stack compact slider-field">
+                <label for="roleLineHeightInput">Role Line Height <span id="roleLineHeightValue" class="slider-value"></span></label>
+                <input id="roleLineHeightInput" class="pro-slider" type="range" min="95" max="150" />
+              </div>
+              <div class="field-stack compact slider-field">
+                <label for="nameTrackingInput">Name Letter Spacing <span id="nameTrackingValue" class="slider-value"></span></label>
+                <input id="nameTrackingInput" class="pro-slider" type="range" min="-4" max="6" />
+              </div>
+              <div class="field-stack compact slider-field">
+                <label for="roleTrackingInput">Role Letter Spacing <span id="roleTrackingValue" class="slider-value"></span></label>
+                <input id="roleTrackingInput" class="pro-slider" type="range" min="-4" max="6" />
+              </div>
+              <div class="field-stack compact">
+                <label for="roleWeightInput">Role Weight</label>
+                <select id="roleWeightInput">
+                  <option value="0">None</option>
+                  <option value="400">Regular</option>
+                  <option value="500">Medium</option>
+                  <option value="600">Semi Bold</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          <div class="section-divider"></div>
+          <div class="typography-group" data-typography-field="department">
+            <div class="section-title-row">
+              <div class="section-title">Department Text</div>
+            </div>
+            <div class="control-subgrid">
+              <div class="field-stack compact">
+                <label for="departmentColorInput">Department Color</label>
+                <input id="departmentColorInput" type="color" />
+              </div>
+              <div class="field-stack compact">
+                <label for="departmentFontInput">Department Font</label>
+                <select id="departmentFontInput"></select>
+              </div>
+              <div class="field-stack compact">
+                <label for="departmentWeightInput">Department Weight</label>
+                <select id="departmentWeightInput">
+                  <option value="0">None</option>
+                  <option value="400">Regular</option>
+                  <option value="500">Medium</option>
+                  <option value="600">Semi Bold</option>
+                </select>
+              </div>
+              <div class="field-stack compact slider-field">
+                <label for="departmentSizeInput">Department Size <span id="departmentSizeValue" class="slider-value"></span></label>
+                <input id="departmentSizeInput" class="pro-slider" type="range" min="10" max="24" />
+              </div>
+              <div class="field-stack compact slider-field">
+                <label for="departmentLineHeightInput">Department Line Height <span id="departmentLineHeightValue" class="slider-value"></span></label>
+                <input id="departmentLineHeightInput" class="pro-slider" type="range" min="90" max="160" />
+              </div>
+            </div>
+          </div>
+          <div class="section-divider"></div>
+          <div class="typography-group" data-typography-field="email">
+            <div class="section-title-row">
+              <div class="section-title">Email Text</div>
+            </div>
+            <div class="control-subgrid">
+              <div class="field-stack compact">
+                <label for="emailColorInput">Email Color</label>
+                <input id="emailColorInput" type="color" />
+              </div>
+              <div class="field-stack compact">
+                <label for="emailFontInput">Email Font</label>
+                <select id="emailFontInput"></select>
+              </div>
+              <div class="field-stack compact">
+                <label for="emailWeightInput">Email Weight</label>
+                <select id="emailWeightInput">
+                  <option value="0">None</option>
+                  <option value="400">Regular</option>
+                  <option value="500">Medium</option>
+                  <option value="600">Semi Bold</option>
+                </select>
+              </div>
+              <div class="field-stack compact slider-field">
+                <label for="emailSizeInput">Email Size <span id="emailSizeValue" class="slider-value"></span></label>
+                <input id="emailSizeInput" class="pro-slider" type="range" min="10" max="24" />
+              </div>
+              <div class="field-stack compact slider-field">
+                <label for="emailLineHeightInput">Email Line Height <span id="emailLineHeightValue" class="slider-value"></span></label>
+                <input id="emailLineHeightInput" class="pro-slider" type="range" min="90" max="160" />
+              </div>
+            </div>
+          </div>
+          <div class="section-divider"></div>
+          <div class="typography-group" data-typography-field="location">
+            <div class="section-title-row">
+              <div class="section-title">Office Location Text</div>
+            </div>
+            <div class="control-subgrid">
+              <div class="field-stack compact">
+                <label for="locationColorInput">Location Color</label>
+                <input id="locationColorInput" type="color" />
+              </div>
+              <div class="field-stack compact">
+                <label for="locationFontInput">Location Font</label>
+                <select id="locationFontInput"></select>
+              </div>
+              <div class="field-stack compact">
+                <label for="locationWeightInput">Location Weight</label>
+                <select id="locationWeightInput">
+                  <option value="0">None</option>
+                  <option value="400">Regular</option>
+                  <option value="500">Medium</option>
+                  <option value="600">Semi Bold</option>
+                </select>
+              </div>
+              <div class="field-stack compact slider-field">
+                <label for="locationSizeInput">Location Size <span id="locationSizeValue" class="slider-value"></span></label>
+                <input id="locationSizeInput" class="pro-slider" type="range" min="10" max="24" />
+              </div>
+              <div class="field-stack compact slider-field">
+                <label for="locationLineHeightInput">Location Line Height <span id="locationLineHeightValue" class="slider-value"></span></label>
+                <input id="locationLineHeightInput" class="pro-slider" type="range" min="90" max="160" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </details>
+
+      <details class="control-dropdown">
+        <summary>Animations</summary>
+        <div class="control-section">
+          <div class="grid-2">
+            <div class="field-stack compact">
+              <label for="cardEntranceAnimationInput">Card Entrance</label>
+              <select id="cardEntranceAnimationInput">
+                <option value="none">None</option>
+                <option value="cascade">Cascade</option>
+                <option value="tree-grow">Tree Grow</option>
+                <option value="fade">Fade</option>
+                <option value="slide">Slide</option>
+                <option value="pop">Pop</option>
+              </select>
+            </div>
+            <div class="field-stack compact">
+              <label for="connectorAnimationInput">Connector Animation</label>
+              <select id="connectorAnimationInput">
+                <option value="none">None</option>
+                <option value="draw">Connector Draw</option>
+                <option value="fade">Fade</option>
+                <option value="flow">Flow Pulse</option>
+              </select>
+            </div>
+          </div>
+          <div class="field-stack compact">
+            <label for="animationSpeedInput">Animation Speed</label>
+            <select id="animationSpeedInput">
+              <option value="fast">Fast</option>
+              <option value="normal">Normal</option>
+              <option value="slow">Slow</option>
+            </select>
+          </div>
+        </div>
+      </details>
+
+      <div id="statusText" class="status-text" role="status" aria-live="polite"></div>
+    </aside>
+  </div>
+  </section>
+  <section id="view-dashboard" class="app-page" data-page="dashboard" hidden>
+    <div class="page-shell">
+      <div class="page-hero">
+        <h1>EasyOrg Dashboard</h1>
+        <p>One place to access organization, library, integrations, and reporting workflows.</p>
+      </div>
+      <div class="dashboard-grid">
+        <article class="dashboard-card">
+          <div class="dashboard-card-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+              <path d="M12 4v16"></path>
+              <path d="M6 8h12"></path>
+              <path d="M6 16h12"></path>
+              <circle cx="8" cy="8" r="1.4"></circle>
+              <circle cx="16" cy="8" r="1.4"></circle>
+              <circle cx="8" cy="16" r="1.4"></circle>
+              <circle cx="16" cy="16" r="1.4"></circle>
+            </svg>
+          </div>
+          <div>
+            <h2>Organization</h2>
+            <p>Charts, structure, hierarchy, and team relationships.</p>
+          </div>
+        </article>
+        <article class="dashboard-card">
+          <div class="dashboard-card-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+              <path d="M6 5.5h12a1.5 1.5 0 0 1 1.5 1.5v10A1.5 1.5 0 0 1 18 18.5H6A1.5 1.5 0 0 1 4.5 17V7A1.5 1.5 0 0 1 6 5.5Z"></path>
+              <path d="M8 8h8"></path>
+              <path d="M8 12h8"></path>
+              <path d="M8 16h5"></path>
+            </svg>
+          </div>
+          <div>
+            <h2>Library</h2>
+            <p>Load ZIPs, manage members, and reuse photos and data.</p>
+          </div>
+        </article>
+        <article class="dashboard-card">
+          <div class="dashboard-card-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+              <path d="M8.5 9.5 12 6l3.5 3.5"></path>
+              <path d="M12 6v12"></path>
+              <path d="M6.5 13.5 3 17l3.5 3.5"></path>
+              <path d="M17.5 13.5 21 17l-3.5 3.5"></path>
+              <path d="M8 18h8"></path>
+            </svg>
+          </div>
+          <div>
+            <h2>Integration</h2>
+            <p>Connect Microsoft, sheets, and automated import sources.</p>
+          </div>
+        </article>
+        <article class="dashboard-card">
+          <div class="dashboard-card-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+              <path d="M5 19V5"></path>
+              <path d="M5 19h14"></path>
+              <path d="M8 15V12"></path>
+              <path d="M12 15V8"></path>
+              <path d="M16 15v-5"></path>
+            </svg>
+          </div>
+          <div>
+            <h2>Reports</h2>
+            <p>Saved charts, usage, exports, and history reporting.</p>
+          </div>
+        </article>
+        <article class="dashboard-card dashboard-card-span">
+          <h2>Quick Launch</h2>
+          <p>Jump into common workflows from one dashboard page.</p>
+          <div class="dashboard-actions">
+            <button class="btn btn-primary" type="button" onclick="setTopbarView('canvas')">Open Canvas</button>
+            <button class="btn" type="button" onclick="openChartSettingsModal('new')">New Chart</button>
+            <button class="btn" type="button" onclick="setTopbarView('canvas'); document.getElementById('libraryZipInput')?.focus();">Open Team Library</button>
+          </div>
+        </article>
+      </div>
+    </div>
+  </section>
+  <section id="view-organization" class="app-page" data-page="organization" hidden>
+    <div class="page-shell">
+      <div class="page-hero">
+        <h1>Organization</h1>
+        <p>Manage company structure, departments, and reporting groups.</p>
+      </div>
+      <div class="page-grid">
+        <article class="page-card">
+          <h2>Departments</h2>
+          <p>Build out department-level views and hierarchy presets.</p>
+        </article>
+        <article class="page-card">
+          <h2>Leadership</h2>
+          <p>Surface executive groups and key organizational anchors.</p>
+        </article>
+        <article class="page-card">
+          <h2>Structure</h2>
+          <p>Choose top-down, swimlane, radial, and other org modes.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+  <section id="view-library" class="app-page" data-page="library" hidden>
+    <div class="page-shell">
+      <div class="page-hero">
+        <h1>Library</h1>
+        <p>Browse and manage reusable people, photos, and data imports.</p>
+      </div>
+      <div class="page-grid">
+        <article class="page-card">
+          <h2>Team Library</h2>
+          <p>Search, upload, and organize reusable team members.</p>
+        </article>
+        <article class="page-card">
+          <h2>Data Upload</h2>
+          <p>Load ZIP and spreadsheet sources into the shared library.</p>
+        </article>
+        <article class="page-card">
+          <h2>Chart Library</h2>
+          <p>Reuse saved chart templates and prior versions quickly.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+  <section id="view-integration" class="app-page" data-page="integration" hidden>
+    <div class="page-shell">
+      <div class="page-hero">
+        <h1>Integration</h1>
+        <p>Connect data sources and automate team population workflows.</p>
+      </div>
+      <div class="page-grid">
+        <article class="page-card">
+          <h2>Microsoft</h2>
+          <p>Directory, Teams, and account integration hooks.</p>
+        </article>
+        <article class="page-card">
+          <h2>Sheets / Excel</h2>
+          <p>Bring in people and photos from structured files.</p>
+        </article>
+        <article class="page-card">
+          <h2>ZIP Imports</h2>
+          <p>Import image bundles and data packages in one upload.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+  <section id="view-reports" class="app-page" data-page="reports" hidden>
+    <div class="page-shell">
+      <div class="page-hero">
+        <h1>Reports</h1>
+        <p>Track saved charts, usage, and export-ready summaries.</p>
+      </div>
+      <div class="page-grid">
+        <article class="page-card">
+          <h2>Saved Charts</h2>
+          <p>Open recent org charts and archive versions.</p>
+        </article>
+        <article class="page-card">
+          <h2>Exports</h2>
+          <p>Review PDF, PNG, PPTX, and HTML outputs.</p>
+        </article>
+        <article class="page-card">
+          <h2>Activity</h2>
+          <p>See who created, edited, and reused each chart.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <div id="chartSettingsModal" class="chart-settings-modal" hidden>
+    <section class="chart-settings-dialog" role="dialog" aria-modal="true" aria-labelledby="chartSettingsTitle">
+      <header class="chart-settings-header">
+        <h2 id="chartSettingsTitle">Chart Settings</h2>
+        <button id="chartSettingsCloseBtn" class="chart-settings-close" type="button" aria-label="Close chart settings">&times;</button>
+      </header>
+      <div class="chart-settings-body">
+        <div class="chart-settings-tabs" role="tablist" aria-label="Chart settings sections">
+          <button id="chartSettingsDetailsTab" class="chart-settings-tab is-active" type="button" role="tab">Chart Details</button>
+          <button id="chartSettingsPermissionsTab" class="chart-settings-tab" type="button" role="tab">Permissions</button>
+        </div>
+
+        <div id="chartSettingsDetailsPane" class="chart-settings-pane">
+          <div class="modal-field">
+            <label for="chartSettingsNameInput">Chart Name <span>(Optional)</span></label>
+            <input id="chartSettingsNameInput" type="text" placeholder="TD Bank Executive Team-Template" />
+          </div>
+          <div class="modal-field">
+            <label for="chartSettingsCreatedByInput">Created By <span>(Optional)</span></label>
+            <input id="chartSettingsCreatedByInput" type="text" placeholder="Your name" />
+          </div>
+          <div class="modal-field">
+            <label for="chartSettingsCreatedDateInput">Created Date <span>(Optional)</span></label>
+            <input id="chartSettingsCreatedDateInput" type="date" />
+          </div>
+        </div>
+
+        <div id="chartSettingsPermissionsPane" class="chart-settings-pane" hidden>
+          <div class="permission-toolbar">
+            <button class="btn permission-muted-btn" type="button" disabled>Edit</button>
+            <button class="btn permission-muted-btn" type="button" disabled>Delete</button>
+            <input id="chartPermissionNameInput" type="text" placeholder="Name" />
+            <input id="chartPermissionEmailInput" type="email" placeholder="Email" />
+            <select id="chartPermissionUserTypeInput">
+              <option value="Viewer">Viewer</option>
+              <option value="Editor">Editor</option>
+              <option value="Owner">Owner</option>
+            </select>
+            <select id="chartPermissionScopeInput">
+              <option value="Can View">Can View</option>
+              <option value="Can Edit">Can Edit</option>
+              <option value="Full Access">Full Access</option>
+            </select>
+            <button id="chartPermissionInviteBtn" class="btn modal-primary-btn" type="button">New User</button>
+          </div>
+          <div class="permissions-table-wrap">
+            <table class="permissions-table">
+              <thead>
+                <tr>
+                  <th><input type="checkbox" aria-label="Select all permissions" disabled /></th>
+                  <th>Name</th>
+                  <th>Email</th>
+                  <th>User Type</th>
+                  <th>Invite Status</th>
+                  <th>Scope</th>
+                </tr>
+              </thead>
+              <tbody id="chartPermissionsTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <footer class="chart-settings-footer">
+          <button id="chartSettingsSaveBtn" class="btn modal-primary-btn" type="button">Save Changes</button>
+        </footer>
+      </div>
+    </section>
+  </div>
+
+  <div id="memberEditModal" class="chart-settings-modal" hidden>
+    <section class="chart-settings-dialog member-edit-dialog" role="dialog" aria-modal="true" aria-labelledby="memberEditTitle">
+      <header class="chart-settings-header">
+        <h2 id="memberEditTitle">Edit Team Member</h2>
+        <button id="memberEditCloseBtn" class="chart-settings-close" type="button" aria-label="Close member editor">&times;</button>
+      </header>
+      <div class="chart-settings-body">
+        <div class="member-edit-grid">
+          <div class="modal-field">
+            <label for="newMemberName">Name</label>
+            <input id="newMemberName" type="text" placeholder="Full name" />
+          </div>
+          <div class="modal-field">
+            <label for="newMemberTitle">Position</label>
+            <input id="newMemberTitle" type="text" placeholder="Job title" />
+          </div>
+          <div class="modal-field">
+            <label for="newMemberDepartment">Department</label>
+            <input id="newMemberDepartment" type="text" placeholder="Department" />
+          </div>
+          <div class="modal-field">
+            <label for="newMemberEmail">Email</label>
+            <input id="newMemberEmail" type="email" placeholder="name@company.com" />
+          </div>
+          <div class="modal-field">
+            <label for="newMemberLocation">Office Location</label>
+            <input id="newMemberLocation" type="text" placeholder="Office location" />
+          </div>
+          <div class="modal-field">
+            <label for="newMemberPhoto">Photo</label>
+            <input id="newMemberPhoto" type="file" accept="image/*" />
+          </div>
+        </div>
+        <footer class="chart-settings-footer">
+          <button id="cancelEditMemberBtn" class="btn secondary-btn" type="button">Cancel</button>
+          <button id="addMemberBtn" class="btn modal-primary-btn" type="button">Save Changes</button>
+        </footer>
+      </div>
+    </section>
+  </div>
+
+  <div id="helpModal" class="chart-settings-modal help-modal" hidden>
+    <section class="chart-settings-dialog help-dialog" role="dialog" aria-modal="true" aria-labelledby="helpTitle">
+      <header class="chart-settings-header help-header">
+        <h2 id="helpTitle">EasyOrg Help</h2>
+        <button id="helpCloseBtn" class="chart-settings-close" type="button" aria-label="Close help">&times;</button>
+      </header>
+      <div class="chart-settings-body help-body">
+        <div class="help-intro">
+          <p>Quick tips to keep charts moving fast:</p>
+        </div>
+        <div class="help-grid">
+          <article class="help-card">
+            <h3>Build</h3>
+            <p>Drag people from Team Library onto the canvas, then connect cards or let auto-connectors place rows for you.</p>
+          </article>
+          <article class="help-card">
+            <h3>Style</h3>
+            <p>Use the Canvas Controls panel for layout, colors, card styles, and exports.</p>
+          </article>
+          <article class="help-card">
+            <h3>Save</h3>
+            <p>Start a new chart from New Canvas, then save it into the Chart Library for reuse.</p>
+          </article>
+          <article class="help-card">
+            <h3>Shortcuts</h3>
+            <p>Undo, redo, fit all, mini map, zoom, and export are all up in the top toolbar.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/html-to-image@1.11.11/dist/html-to-image.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/gitbrent/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"></script>
+  <script src="app.js?v=20260609-01"></script>
+</body>
+</html>
