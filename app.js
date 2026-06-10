@@ -36,7 +36,7 @@ const PRESETS = {
     canvasRowCount: 'auto',
     connectorStyle: 'orthogonal',
     connectorType: 'solid',
-    connectorWeight: 'medium',
+    connectorWeight: 4,
     cardShape: 'rounded',
     cardLayout: 'avatar-left',
     avatarStyle: 'rounded',
@@ -110,7 +110,7 @@ const PRESETS = {
     canvasRowCount: 'auto',
     connectorStyle: 'orthogonal',
     connectorType: 'solid',
-    connectorWeight: 'medium',
+    connectorWeight: 4,
     cardShape: 'rounded',
     cardLayout: 'avatar-left',
     avatarStyle: 'rounded',
@@ -174,7 +174,7 @@ const PRESETS = {
     canvasRowCount: 'auto',
     connectorStyle: 'orthogonal',
     connectorType: 'solid',
-    connectorWeight: 'medium',
+    connectorWeight: 4,
     cardShape: 'pill',
     cardLayout: 'avatar-left',
     avatarStyle: 'circle',
@@ -238,7 +238,7 @@ const PRESETS = {
     canvasRowCount: 'auto',
     connectorStyle: 'orthogonal',
     connectorType: 'solid',
-    connectorWeight: 'medium',
+    connectorWeight: 4,
     cardShape: 'soft',
     cardLayout: 'avatar-top',
     avatarStyle: 'rounded',
@@ -511,6 +511,7 @@ const dom = {
   connectorStyleInput: document.getElementById('connectorStyleInput'),
   connectorTypeInput: document.getElementById('connectorTypeInput'),
   connectorWeightInput: document.getElementById('connectorWeightInput'),
+  connectorWeightValue: document.getElementById('connectorWeightValue'),
   cardEntranceAnimationInput: document.getElementById('cardEntranceAnimationInput'),
   connectorAnimationInput: document.getElementById('connectorAnimationInput'),
   animationSpeedInput: document.getElementById('animationSpeedInput'),
@@ -3009,6 +3010,15 @@ function connectorVisualProfile() {
   return { linecap: 'round', linejoin: 'round' };
 }
 
+function connectorThicknessValue() {
+  const raw = state.settings.connectorWeight;
+  if (typeof raw === 'number' && Number.isFinite(raw)) {
+    return clamp(raw, 1, 12);
+  }
+  const legacyMap = { thin: 2, medium: 4, bold: 7 };
+  return legacyMap[String(raw || '').toLowerCase()] || 4;
+}
+
 function syncConnectorLayerSize() {
   const layerWidth = dom.cardLayer.clientWidth || 1280;
   const layerHeight = dom.cardLayer.clientHeight || 560;
@@ -3020,8 +3030,7 @@ function renderConnectors(layouts) {
   syncConnectorLayerSize();
   const paths = [];
   const decorations = [];
-  const weightMap = { thin: 2, medium: 4, bold: 7 };
-  const strokeWidth = weightMap[state.settings.connectorWeight] || 4;
+  const strokeWidth = connectorThicknessValue();
   const timings = animationTimings();
   const connectorClass = connectorAnimationClass();
   const visual = connectorVisualProfile();
@@ -5355,7 +5364,8 @@ function syncControls() {
   setValue(dom.rowCountInput, state.settings.canvasRowCount || 'auto');
   setValue(dom.connectorStyleInput, state.settings.connectorStyle);
   setValue(dom.connectorTypeInput, state.settings.connectorType);
-  setValue(dom.connectorWeightInput, state.settings.connectorWeight);
+  setValue(dom.connectorWeightInput, String(connectorThicknessValue()));
+  if (dom.connectorWeightValue) dom.connectorWeightValue.textContent = `${connectorThicknessValue()} px`;
   setValue(dom.cardEntranceAnimationInput, state.settings.cardEntranceAnimation || 'none');
   setValue(dom.connectorAnimationInput, state.settings.connectorAnimation || 'none');
   setValue(dom.animationSpeedInput, state.settings.animationSpeed || 'normal');
@@ -5689,8 +5699,9 @@ function bindControlEvents() {
     render();
   });
 
-  dom.connectorWeightInput?.addEventListener('change', () => {
-    state.settings.connectorWeight = dom.connectorWeightInput.value;
+  dom.connectorWeightInput?.addEventListener('input', () => {
+    state.settings.connectorWeight = Number(dom.connectorWeightInput.value);
+    if (dom.connectorWeightValue) dom.connectorWeightValue.textContent = `${state.settings.connectorWeight} px`;
     render();
   });
 
