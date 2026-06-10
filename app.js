@@ -538,6 +538,7 @@ const dom = {
   connectorStartPointsInput: document.getElementById('connectorStartPointsInput'),
   connectorStartMarkerScaleInput: document.getElementById('connectorStartMarkerScaleInput'),
   connectorStartMarkerScaleValue: document.getElementById('connectorStartMarkerScaleValue'),
+  connectorStartMarkerScaleValueAlt: document.getElementById('connectorStartMarkerScaleValueAlt'),
   connectorMarkerScaleInput: document.getElementById('connectorMarkerScaleInput'),
   connectorMarkerScaleValue: document.getElementById('connectorMarkerScaleValue'),
   cardEntranceAnimationInput: document.getElementById('cardEntranceAnimationInput'),
@@ -5430,6 +5431,7 @@ function syncControls() {
   setValue(dom.connectorMarkersInput, state.settings.connectorEndPoint || 'arrow');
   setValue(dom.connectorStartMarkerScaleInput, String(state.settings.connectorStartMarkerScale ?? 1));
   if (dom.connectorStartMarkerScaleValue) dom.connectorStartMarkerScaleValue.textContent = `${Number(state.settings.connectorStartMarkerScale ?? 1).toFixed(1)}x`;
+  if (dom.connectorStartMarkerScaleValueAlt) dom.connectorStartMarkerScaleValueAlt.textContent = `${Number(state.settings.connectorStartMarkerScale ?? 1).toFixed(1)}x`;
   setValue(dom.connectorMarkerScaleInput, String(state.settings.connectorMarkerScale ?? 1));
   if (dom.connectorMarkerScaleValue) dom.connectorMarkerScaleValue.textContent = `${Number(state.settings.connectorMarkerScale ?? 1).toFixed(1)}x`;
   setValue(dom.cardEntranceAnimationInput, state.settings.cardEntranceAnimation || 'none');
@@ -5450,6 +5452,7 @@ function syncControls() {
   setValue(dom.connectorMarkersInput, state.settings.connectorEndPoint || 'arrow');
   setValue(dom.connectorStartMarkerScaleInput, String(state.settings.connectorStartMarkerScale ?? 1));
   if (dom.connectorStartMarkerScaleValue) dom.connectorStartMarkerScaleValue.textContent = `${Number(state.settings.connectorStartMarkerScale ?? 1).toFixed(1)}x`;
+  if (dom.connectorStartMarkerScaleValueAlt) dom.connectorStartMarkerScaleValueAlt.textContent = `${Number(state.settings.connectorStartMarkerScale ?? 1).toFixed(1)}x`;
   setValue(dom.cardVisualTypeInput, state.settings.cardVisualType || 'standard');
   setValue(dom.avatarTreatmentInput, state.settings.avatarTreatment || 'default');
   setValue(dom.bgColorInput, state.settings.bgColor);
@@ -5788,6 +5791,7 @@ function bindControlEvents() {
     state.settings.connectorStartMarkerScale = Number(dom.connectorStartMarkerScaleInput.value);
     setSliderFill(dom.connectorStartMarkerScaleInput);
     if (dom.connectorStartMarkerScaleValue) dom.connectorStartMarkerScaleValue.textContent = `${state.settings.connectorStartMarkerScale.toFixed(1)}x`;
+    if (dom.connectorStartMarkerScaleValueAlt) dom.connectorStartMarkerScaleValueAlt.textContent = `${state.settings.connectorStartMarkerScale.toFixed(1)}x`;
     render();
   });
 
