@@ -694,9 +694,13 @@ body {
 .chart-archive-list {
   display: grid;
   gap: 8px;
-  max-height: 260px;
+  min-height: 360px;
+  height: clamp(360px, 44vh, 620px);
+  max-height: 72vh;
   overflow: auto;
   padding-right: 2px;
+  resize: vertical;
+  scrollbar-gutter: stable;
 }
 
 .archive-save-panel {
