@@ -1377,6 +1377,123 @@ function compactRows() {
   state.rows = state.rows.filter((row) => row.length > 0);
 }
 
+function nodeSortIndexMap() {
+  const order = new Map();
+  let index = 0;
+  state.rows.forEach((row) => {
+    row.forEach((nodeId) => {
+      if (!order.has(nodeId)) {
+        order.set(nodeId, index);
+        index += 1;
+      }
+    });
+  });
+  Object.keys(state.nodes || {}).forEach((nodeId) => {
+    if (!order.has(nodeId)) {
+      order.set(nodeId, index);
+      index += 1;
+    }
+  });
+  return order;
+}
+
+function rebuildRowsFromManualLinks() {
+  const nodeIds = Object.keys(state.nodes || {});
+  if (!nodeIds.length || !Array.isArray(state.manualLinks) || !state.manualLinks.length) {
+    return false;
+  }
+
+  const nodeSet = new Set(nodeIds);
+  const children = new Map(nodeIds.map((nodeId) => [nodeId, []]));
+  const indegree = new Map(nodeIds.map((nodeId) => [nodeId, 0]));
+  state.manualLinks.forEach((link) => {
+    if (!nodeSet.has(link.from) || !nodeSet.has(link.to) || link.from === link.to) {
+      return;
+    }
+    children.get(link.from).push(link.to);
+    indegree.set(link.to, (indegree.get(link.to) || 0) + 1);
+  });
+
+  const order = nodeSortIndexMap();
+  const roots = nodeIds
+    .filter((nodeId) => (indegree.get(nodeId) || 0) === 0)
+    .sort((a, b) => (order.get(a) || 0) - (order.get(b) || 0));
+  if (!roots.length) {
+    return false;
+  }
+
+  const levelByNode = new Map();
+  const queue = roots.map((nodeId) => ({ nodeId, level: 0 }));
+  while (queue.length) {
+    const { nodeId, level } = queue.shift();
+    if ((levelByNode.get(nodeId) ?? -1) >= level) {
+      continue;
+    }
+    levelByNode.set(nodeId, level);
+    (children.get(nodeId) || []).forEach((childId) => {
+      queue.push({ nodeId: childId, level: level + 1 });
+    });
+  }
+
+  nodeIds.forEach((nodeId) => {
+    if (!levelByNode.has(nodeId)) {
+      levelByNode.set(nodeId, Math.max(0, ...levelByNode.values()));
+    }
+  });
+
+  const grouped = new Map();
+  nodeIds.forEach((nodeId) => {
+    const level = levelByNode.get(nodeId) || 0;
+    if (!grouped.has(level)) {
+      grouped.set(level, []);
+    }
+    grouped.get(level).push(nodeId);
+  });
+
+  state.rows = Array.from(grouped.entries())
+    .sort(([a], [b]) => a - b)
+    .map(([, row]) =>
+      row.sort((a, b) => {
+        const aNode = state.nodes[a] || {};
+        const bNode = state.nodes[b] || {};
+        const aPosition = isHorizontalHierarchy() ? Number(aNode.yCenter) : Number(aNode.xCenter);
+        const bPosition = isHorizontalHierarchy() ? Number(bNode.yCenter) : Number(bNode.xCenter);
+        if (Number.isFinite(aPosition) && Number.isFinite(bPosition) && aPosition !== bPosition) {
+          return aPosition - bPosition;
+        }
+        return (order.get(a) || 0) - (order.get(b) || 0);
+      })
+    )
+    .filter((row) => row.length > 0);
+  compactRows();
+  return true;
+}
+
+function clearManualNodePositions() {
+  Object.values(state.nodes || {}).forEach((node) => {
+    if (!node) {
+      return;
+    }
+    delete node.manualPosition;
+    delete node.xCenter;
+    delete node.yCenter;
+  });
+}
+
+function applyDirectionalLayout(direction) {
+  if (!direction || state.settings.hierarchyDirection === direction) {
+    return;
+  }
+  pushCanvasHistory();
+  state.settings.hierarchyDirection = direction;
+  rebuildRowsFromManualLinks();
+  clearManualNodePositions();
+  syncControls();
+  render({ centerContent: true });
+  requestAnimationFrame(() => fitCanvasToContent(rowLayouts(), true));
+  scheduleStatePersistence();
+}
+
 function addNode(memberId, x, y, options = {}) {
   const persist = options.persist !== false;
   const existingNodeId = Object.values(state.nodes).find((node) => node.memberId === memberId)?.id || null;
@@ -2878,6 +2995,7 @@ function autoLinkPairs(layouts) {
   for (let rowIndex = 1; rowIndex < state.rows.length; rowIndex += 1) {
     const currentRow = state.rows[rowIndex];
     const parentRow = state.rows[rowIndex - 1];
+    const compareVertical = isHorizontalHierarchy();
     currentRow.forEach((childNodeId) => {
       const childLayout = layouts[childNodeId];
       let nearestParent = parentRow[0];
@@ -2885,7 +3003,9 @@ function autoLinkPairs(layouts) {
 
       parentRow.forEach((parentNodeId) => {
         const parentLayout = layouts[parentNodeId];
-        const distance = Math.abs(parentLayout.xCenter - childLayout.xCenter);
+        const distance = compareVertical
+          ? Math.abs(parentLayout.yCenter - childLayout.yCenter)
+          : Math.abs(parentLayout.xCenter - childLayout.xCenter);
         if (distance < nearestDistance) {
           nearestDistance = distance;
           nearestParent = parentNodeId;
@@ -5407,9 +5527,7 @@ function bindControlEvents() {
   dom.removeLibraryZipBtn?.addEventListener('click', removeLibraryZip);
 
   dom.formatDirectionInput?.addEventListener('change', () => {
-    state.settings.hierarchyDirection = dom.formatDirectionInput.value;
-    syncControls();
-    render();
+    applyDirectionalLayout(dom.formatDirectionInput.value);
   });
 
   dom.formatAdvancedLayoutInput?.addEventListener('change', () => {
@@ -5551,9 +5669,7 @@ function bindControlEvents() {
   });
 
   dom.hierarchyDirectionInput?.addEventListener('change', () => {
-    state.settings.hierarchyDirection = dom.hierarchyDirectionInput.value;
-    syncControls();
-    render();
+    applyDirectionalLayout(dom.hierarchyDirectionInput.value);
   });
 
   dom.nodeSpacingInput?.addEventListener('change', () => {
