@@ -768,6 +768,51 @@ body {
   margin-top: 3px;
 }
 
+.archive-edit-details {
+  margin-top: 8px;
+  border: 1px solid rgba(91, 121, 164, 0.18);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.52);
+  padding: 6px 8px;
+}
+
+.archive-edit-details summary {
+  cursor: pointer;
+  color: #29486f;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.archive-edit-grid {
+  display: grid;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.archive-edit-grid label {
+  display: grid;
+  gap: 3px;
+  color: #39536f;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.archive-edit-grid input {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid rgba(126, 149, 178, 0.42);
+  border-radius: 8px;
+  padding: 6px 7px;
+  font-size: 11px;
+}
+
+.archive-edit-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin-top: 8px;
+}
+
 .archive-tags {
   display: flex;
   flex-wrap: wrap;
@@ -797,7 +842,9 @@ body {
 }
 
 .archive-load-btn,
-.archive-delete-btn {
+.archive-delete-btn,
+.archive-save-edit-btn,
+.archive-cancel-edit-btn {
   border-radius: var(--ui-radius);
   padding: 6px 8px;
   font-size: 11px;
@@ -809,6 +856,18 @@ body {
   border: 1px solid rgba(46, 112, 190, 0.28);
   background: rgba(231, 241, 255, 0.9);
   color: #1d4f83;
+}
+
+.archive-save-edit-btn {
+  border: 1px solid rgba(46, 112, 190, 0.28);
+  background: rgba(231, 241, 255, 0.9);
+  color: #1d4f83;
+}
+
+.archive-cancel-edit-btn {
+  border: 1px solid rgba(126, 149, 178, 0.32);
+  background: rgba(245, 248, 252, 0.9);
+  color: #42566d;
 }
 
 .archive-delete-btn {

@@ -6955,6 +6955,8 @@ function renderChartArchive() {
     ? charts
         .map((chart) => {
           const owner = chart.owner ? ` · ${escapeHtml(chart.owner)}` : '';
+          const details = normalizeChartDetails(chart.chartDetails || chart.snapshot?.chartDetails || { name: chart.name, createdBy: chart.owner });
+          const createdDate = details.createdDate || todayIsoDate();
           const thumbnail = chart.thumbnail
             ? `<img class="archive-thumb" src="${chart.thumbnail}" alt="Preview of ${escapeHtml(chart.name)}" />`
             : '<div class="archive-thumb archive-thumb-empty">No preview</div>';
@@ -6963,6 +6965,27 @@ function renderChartArchive() {
               ${thumbnail}
               <div class="archive-card-title">${escapeHtml(chart.name)}</div>
               <div class="archive-card-meta">${formatArchiveDate(chart.updatedAt || chart.createdAt)}${owner} · ${chart.memberCount || 0} cards</div>
+              <details class="archive-edit-details">
+                <summary>Edit details</summary>
+                <div class="archive-edit-grid">
+                  <label>
+                    <span>Name</span>
+                    <input class="archive-edit-name" type="text" value="${escapeHtml(chart.name)}" />
+                  </label>
+                  <label>
+                    <span>Owner</span>
+                    <input class="archive-edit-owner" type="text" value="${escapeHtml(details.createdBy || chart.owner || '')}" />
+                  </label>
+                  <label>
+                    <span>Date</span>
+                    <input class="archive-edit-date" type="date" value="${escapeHtml(createdDate)}" />
+                  </label>
+                </div>
+                <div class="archive-edit-actions">
+                  <button class="archive-save-edit-btn" type="button" data-edit-chart-id="${chart.id}">Save</button>
+                  <button class="archive-cancel-edit-btn" type="button">Cancel</button>
+                </div>
+              </details>
               <div class="archive-actions">
                 <button class="archive-load-btn" type="button" data-load-chart-id="${chart.id}">Load</button>
                 <button class="archive-delete-btn" type="button" data-delete-chart-id="${chart.id}">Delete</button>
@@ -6976,10 +6999,50 @@ function renderChartArchive() {
   dom.chartArchiveList.querySelectorAll('.archive-load-btn').forEach((button) => {
     button.addEventListener('click', () => loadSavedChart(button.dataset.loadChartId));
   });
+  dom.chartArchiveList.querySelectorAll('.archive-save-edit-btn').forEach((button) => {
+    button.addEventListener('click', () => updateSavedChartDetails(button.dataset.editChartId, button.closest('.archive-card')));
+  });
+  dom.chartArchiveList.querySelectorAll('.archive-cancel-edit-btn').forEach((button) => {
+    button.addEventListener('click', () => {
+      const details = button.closest('.archive-edit-details');
+      if (details) {
+        details.open = false;
+      }
+    });
+  });
   dom.chartArchiveList.querySelectorAll('.archive-delete-btn').forEach((button) => {
     button.addEventListener('click', () => deleteSavedChart(button.dataset.deleteChartId));
   });
 }
+
+function updateSavedChartDetails(chartId, cardEl) {
+  const chart = state.savedCharts.find((item) => item.id === chartId);
+  if (!chart || !cardEl) {
+    return;
+  }
+  const nextName = cardEl.querySelector('.archive-edit-name')?.value.trim() || chart.name || 'Org Chart';
+  const nextOwner = cardEl.querySelector('.archive-edit-owner')?.value.trim() || '';
+  const nextDate = cardEl.querySelector('.archive-edit-date')?.value || todayIsoDate();
+  const nextDetails = normalizeChartDetails({
+    ...(chart.chartDetails || chart.snapshot?.chartDetails || {}),
+    name: nextName,
+    createdBy: nextOwner,
+    createdDate: nextDate
+  });
+
+  chart.name = nextDetails.name;
+  chart.owner = nextDetails.createdBy;
+  chart.createdAt = new Date(`${nextDetails.createdDate}T00:00:00`).toISOString();
+  chart.updatedAt = new Date().toISOString();
+  chart.chartDetails = structuredClone(nextDetails);
+  if (chart.snapshot) {
+    chart.snapshot.chartDetails = structuredClone(nextDetails);
+  }
+  persistSavedCharts();
+  renderChartArchive();
+  notify(`Updated ${chart.name} details.`);
+}
+
 async function saveCurrentChart() {
   const memberCount = Object.keys(state.nodes).length;
   if (!memberCount) {
