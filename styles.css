@@ -507,6 +507,15 @@ body {
   scrollbar-gutter: stable;
 }
 
+.add-member-box:not([open]),
+.control-dropdown:not([open]) {
+  height: auto !important;
+  min-height: 0;
+  max-height: none;
+  overflow: visible;
+  resize: none;
+}
+
 .field-stack {
   display: flex;
   flex-direction: column;
