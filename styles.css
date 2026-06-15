@@ -498,6 +498,15 @@ body {
   margin-bottom: 8px;
 }
 
+.add-member-box[open],
+.control-dropdown[open] {
+  overflow: auto;
+  resize: vertical;
+  min-height: 48px;
+  max-height: 72vh;
+  scrollbar-gutter: stable;
+}
+
 .field-stack {
   display: flex;
   flex-direction: column;
