@@ -432,6 +432,8 @@ function createDefaultChartDetails() {
     name: '',
     createdBy: '',
     createdDate: todayIsoDate(),
+    projectName: '',
+    tags: [],
     permissions: []
   };
 }
@@ -443,6 +445,13 @@ function normalizeChartDetails(details) {
     name: String(source.name || ''),
     createdBy: String(source.createdBy || ''),
     createdDate: String(source.createdDate || fallback.createdDate),
+    projectName: String(source.projectName || ''),
+    tags: Array.isArray(source.tags)
+      ? source.tags.map((tag) => String(tag || '').trim()).filter(Boolean)
+      : String(source.tags || '')
+          .split(',')
+          .map((tag) => tag.trim())
+          .filter(Boolean),
     permissions: Array.isArray(source.permissions)
       ? source.permissions.map((permission, index) => ({
           id: permission.id || `permission-${Date.now()}-${index}`,
@@ -6953,8 +6962,18 @@ function renderChartArchive() {
     ? charts
         .map((chart) => {
           const owner = chart.owner ? ` · ${escapeHtml(chart.owner)}` : '';
-          const details = normalizeChartDetails(chart.chartDetails || chart.snapshot?.chartDetails || { name: chart.name, createdBy: chart.owner });
+          const details = normalizeChartDetails(chart.chartDetails || chart.snapshot?.chartDetails || {
+            name: chart.name,
+            createdBy: chart.owner,
+            projectName: chart.projectName,
+            tags: chart.tags
+          });
           const createdDate = details.createdDate || todayIsoDate();
+          const tags = Array.isArray(details.tags) ? details.tags : [];
+          const tagMarkup = tags.length
+            ? `<div class="archive-tags">${tags.map((tag) => `<span class="archive-tag">${escapeHtml(tag)}</span>`).join('')}</div>`
+            : '';
+          const projectLine = details.projectName ? ` · Project: ${escapeHtml(details.projectName)}` : '';
           const thumbnail = chart.thumbnail
             ? `<img class="archive-thumb" src="${chart.thumbnail}" alt="Preview of ${escapeHtml(chart.name)}" />`
             : '<div class="archive-thumb archive-thumb-empty">No preview</div>';
@@ -6962,7 +6981,8 @@ function renderChartArchive() {
             <article class="archive-card" data-chart-id="${chart.id}">
               ${thumbnail}
               <div class="archive-card-title">${escapeHtml(chart.name)}</div>
-              <div class="archive-card-meta">${formatArchiveDate(chart.updatedAt || chart.createdAt)}${owner} · ${chart.memberCount || 0} cards</div>
+              <div class="archive-card-meta">${formatArchiveDate(chart.updatedAt || chart.createdAt)}${owner}${projectLine} · ${chart.memberCount || 0} cards</div>
+              ${tagMarkup}
               <details class="archive-edit-details">
                 <summary>Edit details</summary>
                 <div class="archive-edit-grid">
@@ -6973,6 +6993,14 @@ function renderChartArchive() {
                   <label>
                     <span>Owner</span>
                     <input class="archive-edit-owner" type="text" value="${escapeHtml(details.createdBy || chart.owner || '')}" />
+                  </label>
+                  <label>
+                    <span>Project Name</span>
+                    <input class="archive-edit-project-name" type="text" value="${escapeHtml(details.projectName || '')}" />
+                  </label>
+                  <label>
+                    <span>Tags</span>
+                    <input class="archive-edit-tags" type="text" value="${escapeHtml(tags.join(', '))}" placeholder="Tag 1, Tag 2" />
                   </label>
                   <label>
                     <span>Date</span>
@@ -7020,16 +7048,25 @@ function updateSavedChartDetails(chartId, cardEl) {
   }
   const nextName = cardEl.querySelector('.archive-edit-name')?.value.trim() || chart.name || 'Org Chart';
   const nextOwner = cardEl.querySelector('.archive-edit-owner')?.value.trim() || '';
+  const nextProjectName = cardEl.querySelector('.archive-edit-project-name')?.value.trim() || '';
+  const nextTags = cardEl.querySelector('.archive-edit-tags')?.value
+    .split(',')
+    .map((tag) => tag.trim())
+    .filter(Boolean);
   const nextDate = cardEl.querySelector('.archive-edit-date')?.value || todayIsoDate();
   const nextDetails = normalizeChartDetails({
     ...(chart.chartDetails || chart.snapshot?.chartDetails || {}),
     name: nextName,
     createdBy: nextOwner,
+    projectName: nextProjectName,
+    tags: nextTags,
     createdDate: nextDate
   });
 
   chart.name = nextDetails.name;
   chart.owner = nextDetails.createdBy;
+  chart.projectName = nextDetails.projectName;
+  chart.tags = structuredClone(nextDetails.tags);
   chart.createdAt = new Date(`${nextDetails.createdDate}T00:00:00`).toISOString();
   chart.updatedAt = new Date().toISOString();
   chart.chartDetails = structuredClone(nextDetails);
@@ -7059,6 +7096,8 @@ async function saveCurrentChart() {
     id: `chart-${Date.now()}`,
     name: name.trim(),
     owner: state.chartDetails.createdBy || '',    memberCount,
+    projectName: state.chartDetails.projectName || '',
+    tags: structuredClone(state.chartDetails.tags || []),
     createdAt: state.chartDetails.createdDate ? new Date(state.chartDetails.createdDate).toISOString() : now,
     updatedAt: now,
     thumbnail: '',
@@ -7123,7 +7162,12 @@ function loadSavedChart(chartId) {
   state.autoConnect = snapshot.autoConnect !== false;
   state.canvasBoardWidth = Number(snapshot.canvasBoardWidth) || null;
   state.canvasBoardHeight = Number(snapshot.canvasBoardHeight) || null;
-  state.chartDetails = normalizeChartDetails(snapshot.chartDetails || chart.chartDetails || { name: chart.name });
+  state.chartDetails = normalizeChartDetails(snapshot.chartDetails || chart.chartDetails || {
+    name: chart.name,
+    createdBy: chart.owner,
+    projectName: chart.projectName,
+    tags: chart.tags
+  });
   if (dom.chartTitleInput) {
     dom.chartTitleInput.value = state.chartDetails.name || chart.name || '';
   }
