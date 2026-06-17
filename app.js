@@ -630,7 +630,6 @@ const dom = {
   undoBtn: document.getElementById('undoBtn'),
   redoBtn: document.getElementById('redoBtn'),
   fitAllBtn: document.getElementById('fitAllBtn'),
-  cleanupLayoutBtn: document.getElementById('cleanupLayoutBtn'),
   toggleMinimapBtn: document.getElementById('toggleMinimapBtn'),
   toggleLegendBtn: document.getElementById('toggleLegendBtn'),
   toggleReportCountsBtn: document.getElementById('toggleReportCountsBtn'),
@@ -5986,7 +5985,6 @@ function bindControlEvents() {
     scheduleStatePersistence();
     notify('Fit chart to the canvas view.');
   });
-  dom.cleanupLayoutBtn?.addEventListener('click', cleanupCanvasLayout);
   dom.toggleMinimapBtn?.addEventListener('click', () => {
     state.showMinimap = state.showMinimap === false;
     updateToolbarViewButtons();
