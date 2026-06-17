@@ -626,7 +626,6 @@ const dom = {
   toggleLegendBtn: document.getElementById('toggleLegendBtn'),
   toggleReportCountsBtn: document.getElementById('toggleReportCountsBtn'),
   clearChartBtn: document.getElementById('clearChartBtn'),
-  clearCanvasBtn: document.getElementById('clearCanvasBtn'),
   saveChartBtn: document.getElementById('saveChartBtn'),
   exportChartBtn: document.getElementById('exportChartBtn'),
   exportMenu: document.getElementById('exportMenu'),
@@ -6015,7 +6014,6 @@ function bindControlEvents() {
     scheduleStatePersistence();
     notify('Canvas cleared.');
   });
-  dom.clearCanvasBtn?.addEventListener('click', () => openChartSettingsModal('new'));
   dom.saveChartBtn?.addEventListener('click', saveCurrentChart);
   dom.exportChartBtn?.addEventListener('click', exportPng);
   dom.zoomOutBtn?.addEventListener('click', () => zoomBy(-CANVAS_ZOOM_STEP));
