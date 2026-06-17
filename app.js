@@ -558,9 +558,6 @@ const dom = {
   connectorStartMarkerScaleValue: document.getElementById('connectorStartMarkerScaleValue'),
   connectorMarkerScaleInput: document.getElementById('connectorMarkerScaleInput'),
   connectorMarkerScaleValue: document.getElementById('connectorMarkerScaleValue'),
-  cardEntranceAnimationInput: document.getElementById('cardEntranceAnimationInput'),
-  connectorAnimationInput: document.getElementById('connectorAnimationInput'),
-  animationSpeedInput: document.getElementById('animationSpeedInput'),
   structureFreeformInput: document.getElementById('structureFreeformInput'),
   shadowIntensityInput: document.getElementById('shadowIntensityInput'),
   blurStrengthInput: document.getElementById('blurStrengthInput'),
@@ -2638,8 +2635,6 @@ function renderCards(layouts) {
   const fillAppearance = cardFillAppearance();
   const textScale = getCardTextScaleFactor();
   const blurStrength = clamp(Number(state.settings.blurStrength || 10), 0, 24);
-  const timings = animationTimings();
-  const entranceClass = hasRenderedCanvasOnce ? '' : cardAnimationClass();
   const floatingClass = state.settings.floatingCards ? ' float-on-hover' : '';
 
   dom.cardLayer.innerHTML = Object.entries(layouts)
@@ -2659,8 +2654,6 @@ function renderCards(layouts) {
       const viewBorder = state.settings.orgChartColorBy && state.settings.orgChartColorBy !== 'none'
         ? `${Math.max(2, Number(state.settings.outlineWidth) || 1)}px ${state.settings.cardLineStyle === 'none' ? 'solid' : state.settings.cardLineStyle || 'solid'} ${viewColor}`
         : cardBorder;
-      const animationClass = entranceClass ? ` ${entranceClass}` : '';
-      const animationDelay = cardAnimationDelay(layout, timings);
       const style = [
         `left:${layout.x}px`,
         `top:${layout.y}px`,
@@ -2670,8 +2663,6 @@ function renderCards(layouts) {
         `box-shadow:${cardShadow}`,
         `border-radius:${cardRadius}px`,
         `font-family:${state.settings.cardFont || state.settings.headingFont || 'Manrope'}, sans-serif`,
-        `--enter-duration:${timings.cardDuration}ms`,
-        `--enter-delay:${animationDelay}ms`,
         `background:${visual.background || fillAppearance.background}`,
         !visual.background && fillAppearance.backgroundSize ? `background-size:${fillAppearance.backgroundSize}` : '',
         visual.backdrop ? `backdrop-filter:${visual.backdrop}` : '',
@@ -2684,7 +2675,7 @@ function renderCards(layouts) {
       ].join(';');
 
       return `
-        <article class="canvas-card ${selectedClass}${animationClass}${floatingClass}${visual.extraClass ? ` ${visual.extraClass}` : ''}" data-node-id="${nodeId}" data-card-visual="${state.settings.cardVisualType || 'standard'}" data-org-view="${state.settings.orgChartView || 'standard'}" style="${style}">
+        <article class="canvas-card ${selectedClass}${floatingClass}${visual.extraClass ? ` ${visual.extraClass}` : ''}" data-node-id="${nodeId}" data-card-visual="${state.settings.cardVisualType || 'standard'}" data-org-view="${state.settings.orgChartView || 'standard'}" style="${style}">
           <button class="canvas-card-remove-btn" type="button" data-remove-node-id="${nodeId}" aria-label="Remove ${escapeHtml(member.name)} from canvas">X</button>
           ${cardTemplate(member, layout.xCenter, nodeId)}
         </article>
@@ -3072,22 +3063,18 @@ function renderConnectors(layouts) {
   const strokeWidth = connectorThicknessValue();
   const startMarkerScale = clamp(Number(state.settings.connectorStartMarkerScale || 1), 0.1, 2.4);
   const markerScale = clamp(Number(state.settings.connectorMarkerScale || 1), 0.1, 2.4);
-  const timings = animationTimings();
-  const connectorClass = connectorAnimationClass();
   const startMarker = connectorEndpointPreset(state.settings.connectorStartPoint, 'none');
   const endMarker = connectorEndpointPreset(state.settings.connectorEndPoint, 'none');
   const typeProfile = connectorTypePreset(state.settings.connectorType);
   const baseDash = typeProfile.dash || '';
-  let pathIndex = 0;
+  const selectedNodeId = state.selectedCardId;
 
-  function pushPath(fromLayout, toLayout, stroke, width, opacity = 0.8) {
+  function pushPath(fromId, toId, fromLayout, toLayout, stroke, width, opacity = 0.8) {
     const d = pathBetweenCards(fromLayout, toLayout);
-    const anchors = getConnectorAnchors(fromLayout, toLayout);
-    const midX = (anchors.fromX + anchors.toX) / 2;
-    const midY = (anchors.fromY + anchors.toY) / 2;
-    const delay = pathIndex * Math.round(timings.stepDelay * 0.75);
-    pathIndex += 1;
-    const dashValue = connectorClass === 'anim-connector-draw' ? '' : connectorClass === 'anim-connector-flow' ? '14 10' : baseDash;
+    const isHighlighted = Boolean(selectedNodeId && (fromId === selectedNodeId || toId === selectedNodeId));
+    const strokeColor = isHighlighted ? (state.settings.accentColor || stroke) : stroke;
+    const strokeOpacity = isHighlighted ? 1 : opacity;
+    const dashValue = baseDash;
     const markerStart = startMarker === 'arrow' ? 'url(#connector-arrow-start)' : startMarker === 'dot' ? 'url(#connector-dot-start)' : startMarker === 'square' ? 'url(#connector-square-start)' : '';
     const markerEnd = endMarker === 'arrow' ? 'url(#connector-arrow-end)' : endMarker === 'dot' ? 'url(#connector-dot-end)' : endMarker === 'square' ? 'url(#connector-square-end)' : '';
     const linecap = typeProfile.double ? 'round' : 'round';
@@ -3096,15 +3083,15 @@ function renderConnectors(layouts) {
     if (typeProfile.double) {
       const offset = doubleLineOffset(fromLayout, toLayout);
       paths.push(
-        `<path d="${d}" class="connector-line ${connectorClass}" fill="none" stroke="${stroke}" opacity="${opacity * 0.95}" ${dashValue ? `stroke-dasharray="${dashValue}"` : ''} ${offset.x || offset.y ? `transform="translate(${offset.x}, ${offset.y})"` : ''} stroke-linecap="${linecap}" stroke-linejoin="${linejoin}" style="stroke-width:${Math.max(1, width - 1)}px; --connector-duration:${timings.connectorDuration}ms;--connector-delay:${delay}ms;"></path>`
+        `<path d="${d}" class="connector-line${isHighlighted ? ' connector-highlight' : ''}" fill="none" stroke="${strokeColor}" opacity="${strokeOpacity * 0.95}" ${dashValue ? `stroke-dasharray="${dashValue}"` : ''} ${offset.x || offset.y ? `transform="translate(${offset.x}, ${offset.y})"` : ''} stroke-linecap="${linecap}" stroke-linejoin="${linejoin}" style="stroke-width:${Math.max(1, width - 1)}px;"></path>`
       );
       paths.push(
-        `<path d="${d}" class="connector-line ${connectorClass}" fill="none" stroke="${stroke}" opacity="${opacity * 0.95}" ${dashValue ? `stroke-dasharray="${dashValue}"` : ''} ${offset.x || offset.y ? `transform="translate(${-offset.x}, ${-offset.y})"` : ''} stroke-linecap="${linecap}" stroke-linejoin="${linejoin}" style="stroke-width:${Math.max(1, width - 1)}px; --connector-duration:${timings.connectorDuration}ms;--connector-delay:${delay}ms;"></path>`
+        `<path d="${d}" class="connector-line${isHighlighted ? ' connector-highlight' : ''}" fill="none" stroke="${strokeColor}" opacity="${strokeOpacity * 0.95}" ${dashValue ? `stroke-dasharray="${dashValue}"` : ''} ${offset.x || offset.y ? `transform="translate(${-offset.x}, ${-offset.y})"` : ''} stroke-linecap="${linecap}" stroke-linejoin="${linejoin}" style="stroke-width:${Math.max(1, width - 1)}px;"></path>`
       );
     }
 
     paths.push(
-      `<path d="${d}" class="connector-line ${connectorClass}" fill="none" stroke="${stroke}" opacity="${opacity}" ${dashValue ? `stroke-dasharray="${dashValue}"` : ''} ${markerStart ? `marker-start="${markerStart}"` : ''} ${markerEnd ? `marker-end="${markerEnd}"` : ''} stroke-linecap="${linecap}" stroke-linejoin="${linejoin}" style="stroke-width:${width}px; --connector-duration:${timings.connectorDuration}ms;--connector-delay:${delay}ms;"></path>`
+      `<path d="${d}" class="connector-line${isHighlighted ? ' connector-highlight' : ''}" fill="none" stroke="${strokeColor}" opacity="${strokeOpacity}" ${dashValue ? `stroke-dasharray="${dashValue}"` : ''} ${markerStart ? `marker-start="${markerStart}"` : ''} ${markerEnd ? `marker-end="${markerEnd}"` : ''} stroke-linecap="${linecap}" stroke-linejoin="${linejoin}" style="stroke-width:${width}px;"></path>`
     );
   }
 
@@ -3113,7 +3100,7 @@ function renderConnectors(layouts) {
       const fromLayout = layouts[link.from];
       const toLayout = layouts[link.to];
       if (fromLayout && toLayout) {
-        pushPath(fromLayout, toLayout, '#8d949f', strokeWidth, 0.8);
+        pushPath(link.from, link.to, fromLayout, toLayout, '#8d949f', strokeWidth, 0.8);
       }
     });
   }
@@ -3126,7 +3113,7 @@ function renderConnectors(layouts) {
     }
     const manualStroke = link.stroke || state.settings.connectorEndColor || state.settings.connectorColor || state.settings.accentColor;
     const manualWidth = Math.max(1, strokeWidth + 1 + Number(link.widthOffset || 0));
-    pushPath(fromLayout, toLayout, manualStroke, Math.max(manualWidth, 3), 1);
+    pushPath(link.from, link.to, fromLayout, toLayout, manualStroke, Math.max(manualWidth, 3), 1);
   });
 
   const arrowWidth = 18;
@@ -3151,18 +3138,6 @@ function renderConnectors(layouts) {
   </defs>`;
   dom.connectorLayer.innerHTML = `${defs}${paths.join('')}${decorations.join('')}`;
 
-  if (connectorClass === 'anim-connector-draw') {
-    dom.connectorLayer.querySelectorAll('.connector-line').forEach((path) => {
-      try {
-        const length = path.getTotalLength();
-        path.style.setProperty('--dash-start', `${length}`);
-        path.style.strokeDasharray = `${length}`;
-        path.style.strokeDashoffset = `${length}`;
-      } catch (error) {
-        // getTotalLength can fail on disconnected SVG nodes; safe to ignore.
-      }
-    });
-  }
 }
 
 function updateHeaderHeight() {
@@ -5403,9 +5378,6 @@ function syncControls() {
   if (dom.connectorStartMarkerScaleValue) dom.connectorStartMarkerScaleValue.textContent = `${Number(state.settings.connectorStartMarkerScale ?? 1).toFixed(1)}x`;
   setValue(dom.connectorMarkerScaleInput, String(state.settings.connectorMarkerScale ?? 1));
   if (dom.connectorMarkerScaleValue) dom.connectorMarkerScaleValue.textContent = `${Number(state.settings.connectorMarkerScale ?? 1).toFixed(1)}x`;
-  setValue(dom.cardEntranceAnimationInput, state.settings.cardEntranceAnimation || 'none');
-  setValue(dom.connectorAnimationInput, state.settings.connectorAnimation || 'none');
-  setValue(dom.animationSpeedInput, state.settings.animationSpeed || 'normal');
   setValue(dom.structureFreeformInput, String(state.settings.structureFreeform ?? 14));
   setValue(dom.shadowIntensityInput, String(state.settings.shadowIntensity ?? 100));
   setValue(dom.blurStrengthInput, String(state.settings.blurStrength ?? 10));
@@ -5719,21 +5691,6 @@ function bindControlEvents() {
     state.settings.connectorMarkerScale = Number(dom.connectorMarkerScaleInput.value);
     setSliderFill(dom.connectorMarkerScaleInput);
     if (dom.connectorMarkerScaleValue) dom.connectorMarkerScaleValue.textContent = `${state.settings.connectorMarkerScale.toFixed(1)}x`;
-    render();
-  });
-
-  dom.cardEntranceAnimationInput?.addEventListener('change', () => {
-    state.settings.cardEntranceAnimation = dom.cardEntranceAnimationInput.value;
-    render();
-  });
-
-  dom.connectorAnimationInput?.addEventListener('change', () => {
-    state.settings.connectorAnimation = dom.connectorAnimationInput.value;
-    render();
-  });
-
-  dom.animationSpeedInput?.addEventListener('change', () => {
-    state.settings.animationSpeed = dom.animationSpeedInput.value;
     render();
   });
 

@@ -1698,17 +1698,9 @@ body {
   stroke-linejoin: round;
 }
 
-.connector-line.anim-connector-fade {
-  opacity: 0;
-  animation: connectorFadeIn var(--connector-duration, 900ms) ease-out var(--connector-delay, 0ms) forwards;
-}
-
-.connector-line.anim-connector-draw {
-  animation: connectorDrawIn var(--connector-duration, 900ms) cubic-bezier(0.2, 0.65, 0.2, 1) var(--connector-delay, 0ms) forwards;
-}
-
-.connector-line.anim-connector-flow {
-  animation: connectorFlow 1500ms linear var(--connector-delay, 0ms) infinite;
+.connector-line.connector-highlight {
+  stroke-width: 6;
+  filter: drop-shadow(0 0 4px rgba(39, 116, 255, 0.18));
 }
 
 .card-layer {
@@ -1783,31 +1775,6 @@ body {
   background: rgba(248, 98, 98, 0.14);
   border-color: rgba(191, 42, 42, 0.42);
   transform: translateY(-1px);
-}
-
-.canvas-card.anim-card-cascade {
-  opacity: 0;
-  animation: cardCascadeIn var(--enter-duration, 560ms) cubic-bezier(0.18, 0.75, 0.24, 1) var(--enter-delay, 0ms) forwards;
-}
-
-.canvas-card.anim-card-tree {
-  opacity: 0;
-  animation: cardTreeGrowIn var(--enter-duration, 560ms) cubic-bezier(0.22, 0.7, 0.2, 1) var(--enter-delay, 0ms) forwards;
-}
-
-.canvas-card.anim-card-fade {
-  opacity: 0;
-  animation: cardFadeIn var(--enter-duration, 560ms) ease-out var(--enter-delay, 0ms) forwards;
-}
-
-.canvas-card.anim-card-slide {
-  opacity: 0;
-  animation: cardSlideIn var(--enter-duration, 560ms) cubic-bezier(0.2, 0.75, 0.24, 1) var(--enter-delay, 0ms) forwards;
-}
-
-.canvas-card.anim-card-pop {
-  opacity: 0;
-  animation: cardPopIn var(--enter-duration, 560ms) cubic-bezier(0.2, 0.8, 0.22, 1) var(--enter-delay, 0ms) forwards;
 }
 
 .canvas-card .card-accent {
