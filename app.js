@@ -631,7 +631,6 @@ const dom = {
   redoBtn: document.getElementById('redoBtn'),
   fitAllBtn: document.getElementById('fitAllBtn'),
   toggleMinimapBtn: document.getElementById('toggleMinimapBtn'),
-  toggleReportCountsBtn: document.getElementById('toggleReportCountsBtn'),
   clearChartBtn: document.getElementById('clearChartBtn'),
   saveChartBtn: document.getElementById('saveChartBtn'),
   exportChartBtn: document.getElementById('exportChartBtn'),
@@ -748,17 +747,6 @@ function updateToolbarViewButtons() {
     dom.toggleMinimapBtn.setAttribute('aria-label', nextLabel);
     dom.toggleMinimapBtn.setAttribute('title', nextLabel);
     dom.toggleMinimapBtn.setAttribute('aria-pressed', String(showMinimap));
-  }
-
-  if (dom.toggleReportCountsBtn) {
-    const label = dom.toggleReportCountsBtn.querySelector('.toolbar-btn-label');
-    const nextLabel = showReportCounts ? 'Hide Report Counts' : 'Show Report Counts';
-    if (label) {
-      label.textContent = nextLabel;
-    }
-    dom.toggleReportCountsBtn.setAttribute('aria-label', nextLabel);
-    dom.toggleReportCountsBtn.setAttribute('title', nextLabel);
-    dom.toggleReportCountsBtn.setAttribute('aria-pressed', String(showReportCounts));
   }
 }
 
@@ -5979,13 +5967,6 @@ function bindControlEvents() {
     updateMinimap();
     scheduleStatePersistence();
     notify(state.showMinimap ? 'Mini map shown.' : 'Mini map hidden.');
-  });
-  dom.toggleReportCountsBtn?.addEventListener('click', () => {
-    state.settings.showReportCountBadge = !state.settings.showReportCountBadge;
-    updateToolbarViewButtons();
-    render();
-    scheduleStatePersistence();
-    notify(state.settings.showReportCountBadge ? 'Report counts shown.' : 'Report counts hidden.');
   });
   dom.clearChartBtn?.addEventListener('click', () => {
     if (!state.rows.length && !Object.keys(state.nodes || {}).length) {
