@@ -666,6 +666,7 @@ const dom = {
   chartPermissionInviteBtn: document.getElementById('chartPermissionInviteBtn'),
   chartPermissionsTableBody: document.getElementById('chartPermissionsTableBody'),
   chartSettingsSaveBtn: document.getElementById('chartSettingsSaveBtn'),
+  topbarHelpBtn: document.getElementById('topbarHelpBtn'),
   helpModal: document.getElementById('helpModal'),
   helpCloseBtn: document.getElementById('helpCloseBtn')
 };
@@ -756,7 +757,7 @@ function setTopbarView(view) {
     page.hidden = !active;
     page.classList.toggle('is-active', active);
   });
-  document.querySelectorAll('.topbar-nav-btn').forEach((btn) => {
+  document.querySelectorAll('.topbar-nav-btn[data-topbar-view]').forEach((btn) => {
     const active = btn.dataset.topbarView === view;
     btn.classList.toggle('is-active', active);
     if (active) {
@@ -5984,7 +5985,7 @@ function bindControlEvents() {
   dom.zoomOutBtn?.addEventListener('click', () => zoomBy(-CANVAS_ZOOM_STEP));
   dom.zoomInBtn?.addEventListener('click', () => zoomBy(CANVAS_ZOOM_STEP));
   dom.zoomResetBtn?.addEventListener('click', () => setCanvasZoom(1));
-  document.querySelectorAll('.topbar-nav-btn').forEach((btn) => {
+  document.querySelectorAll('.topbar-nav-btn[data-topbar-view]').forEach((btn) => {
     btn.addEventListener('click', () => {
       const view = btn.dataset.topbarView || 'canvas';
       setTopbarView(view);
@@ -6003,6 +6004,7 @@ function bindControlEvents() {
       closeChartSettingsModal();
     }
   });
+  dom.topbarHelpBtn?.addEventListener('click', openHelpModal);
   dom.memberEditCloseBtn?.addEventListener('click', () => {
     resetMemberForm();
     notify('Edit canceled.');
