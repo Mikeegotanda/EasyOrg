@@ -631,7 +631,6 @@ const dom = {
   redoBtn: document.getElementById('redoBtn'),
   fitAllBtn: document.getElementById('fitAllBtn'),
   toggleMinimapBtn: document.getElementById('toggleMinimapBtn'),
-  toggleLegendBtn: document.getElementById('toggleLegendBtn'),
   toggleReportCountsBtn: document.getElementById('toggleReportCountsBtn'),
   clearChartBtn: document.getElementById('clearChartBtn'),
   saveChartBtn: document.getElementById('saveChartBtn'),
@@ -749,17 +748,6 @@ function updateToolbarViewButtons() {
     dom.toggleMinimapBtn.setAttribute('aria-label', nextLabel);
     dom.toggleMinimapBtn.setAttribute('title', nextLabel);
     dom.toggleMinimapBtn.setAttribute('aria-pressed', String(showMinimap));
-  }
-
-  if (dom.toggleLegendBtn) {
-    const label = dom.toggleLegendBtn.querySelector('.toolbar-btn-label');
-    const nextLabel = showLegend ? 'Hide Legend' : 'Show Legend';
-    if (label) {
-      label.textContent = nextLabel;
-    }
-    dom.toggleLegendBtn.setAttribute('aria-label', nextLabel);
-    dom.toggleLegendBtn.setAttribute('title', nextLabel);
-    dom.toggleLegendBtn.setAttribute('aria-pressed', String(showLegend));
   }
 
   if (dom.toggleReportCountsBtn) {
@@ -5991,17 +5979,6 @@ function bindControlEvents() {
     updateMinimap();
     scheduleStatePersistence();
     notify(state.showMinimap ? 'Mini map shown.' : 'Mini map hidden.');
-  });
-  dom.toggleLegendBtn?.addEventListener('click', () => {
-    const showLegend = state.settings.showChartLegend !== false && state.settings.legendPosition !== 'hidden' && state.settings.orgChartColorBy !== 'none';
-    state.settings.showChartLegend = !showLegend;
-    if (state.settings.showChartLegend && state.settings.legendPosition === 'hidden') {
-      state.settings.legendPosition = 'top-right';
-    }
-    syncControls();
-    render();
-    scheduleStatePersistence();
-    notify(state.settings.showChartLegend ? 'Legend shown.' : 'Legend hidden.');
   });
   dom.toggleReportCountsBtn?.addEventListener('click', () => {
     state.settings.showReportCountBadge = !state.settings.showReportCountBadge;
