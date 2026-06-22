@@ -1011,7 +1011,10 @@ function computeRowY(index, count) {
     return (metrics.top + metrics.bottom) / 2;
   }
   const span = metrics.bottom - metrics.top;
-  return metrics.top + (span / (count - 1)) * index;
+  const spacingAmount = clamp(Number(state.settings.structureFreeform || 0) / 100, 0, 1);
+  const compactSpan = span * (0.5 + spacingAmount * 0.48);
+  const start = metrics.top + (span - compactSpan) / 2;
+  return start + (compactSpan / (count - 1)) * index;
 }
 
 function computeRowYFromDirection(index, count) {
@@ -1492,8 +1495,8 @@ function applyDirectionalLayout(direction) {
   rebuildRowsFromManualLinks();
   clearManualNodePositions();
   syncControls();
-  render({ centerContent: true });
-  requestAnimationFrame(() => fitCanvasToContent(rowLayouts(), true));
+  render({ centerContent: false });
+  scheduleFitCanvasToContent(null, true);
   scheduleStatePersistence();
 }
 
@@ -1505,6 +1508,7 @@ function addNode(memberId, x, y, options = {}) {
     state.selectedCardId = existingNodeId;
     state.selectedMemberId = memberId;
     refreshCanvas(false, { centerContent: false });
+    scheduleFitCanvasToContent(rowLayouts(), false);
     if (persist) {
       scheduleStatePersistence();
     }
@@ -1516,6 +1520,7 @@ function addNode(memberId, x, y, options = {}) {
   state.selectedCardId = nodeId;
   state.selectedMemberId = memberId;
   refreshCanvas(false, { centerContent: false });
+  scheduleFitCanvasToContent(rowLayouts(), false);
   if (persist) {
     scheduleStatePersistence();
   }
@@ -1550,6 +1555,7 @@ function removeCanvasNode(nodeId) {
     state.selectedMemberId = null;
   }
   render();
+  scheduleFitCanvasToContent(rowLayouts(), false);
   notify(member ? `Removed ${member.name} from canvas.` : 'Card removed from canvas.');
 }
 
@@ -2396,11 +2402,14 @@ function rowLayouts() {
       layout.yCenter = layout.y + layout.height / 2;
     } else if (mode === 'swimlane') {
       const laneCount = Math.max(1, state.rows.length);
-      const laneHeight = (metrics.bottom - metrics.top) / laneCount;
-      const laneY = metrics.top + laneHeight * layout.rowIndex + laneHeight / 2;
+      const spacingAmount = clamp(Number(state.settings.structureFreeform || 0) / 100, 0, 1);
+      const laneSpan = (metrics.bottom - metrics.top) * (0.5 + spacingAmount * 0.48);
+      const laneStart = metrics.top + ((metrics.bottom - metrics.top) - laneSpan) / 2;
+      const laneHeight = laneCount <= 1 ? laneSpan : laneSpan / laneCount;
+      const laneY = laneStart + laneHeight * layout.rowIndex + laneHeight / 2;
       layout.yCenter = laneY;
       layout.y = laneY - layout.height / 2;
-      const margin = 80 + dynamicAmount * 40;
+      const margin = 120 - spacingAmount * 72 + dynamicAmount * 24;
       if ((layout.columnIndex || 0) === 0) {
         layout.xCenter = metrics.left + margin;
       } else if ((state.rows[layout.rowIndex]?.length || 1) - 1 === layout.columnIndex) {
@@ -3130,38 +3139,12 @@ function renderConnectors(layouts) {
       registerEdge(edge.from, edge.to, edge);
     });
 
-    const queue = [];
-    const visitedNodes = new Set([selectedNodeId]);
-    const visitedEdges = new Set();
     const rootNeighbors = adjacency.get(selectedNodeId) || [];
 
     rootNeighbors.forEach((entry, index) => {
       const color = branchPalette[index % branchPalette.length];
       branchColorMap.set(entry.meta.key, color);
-      queue.push({ nodeId: entry.other, color });
-      visitedEdges.add(entry.meta.key);
     });
-
-    while (queue.length) {
-      const current = queue.shift();
-      if (visitedNodes.has(current.nodeId)) {
-        continue;
-      }
-      visitedNodes.add(current.nodeId);
-      const neighbors = adjacency.get(current.nodeId) || [];
-      neighbors.forEach((entry) => {
-        if (visitedEdges.has(entry.meta.key)) {
-          return;
-        }
-        visitedEdges.add(entry.meta.key);
-        if (!branchColorMap.has(entry.meta.key)) {
-          branchColorMap.set(entry.meta.key, current.color);
-        }
-        if (!visitedNodes.has(entry.other)) {
-          queue.push({ nodeId: entry.other, color: current.color });
-        }
-      });
-    }
   }
 
   buildGraphColoring();
@@ -3571,6 +3554,18 @@ function centerCanvasOnContent(layouts, smooth = true) {
     left,
     top,
     behavior: smooth ? 'smooth' : 'auto'
+  });
+}
+
+let fitCanvasFrameHandle = null;
+
+function scheduleFitCanvasToContent(layouts = null, smooth = false) {
+  if (fitCanvasFrameHandle) {
+    cancelAnimationFrame(fitCanvasFrameHandle);
+  }
+  fitCanvasFrameHandle = requestAnimationFrame(() => {
+    fitCanvasFrameHandle = null;
+    fitCanvasToContent(layouts || rowLayouts(), smooth);
   });
 }
 
@@ -5695,7 +5690,8 @@ function bindControlEvents() {
 
   dom.structureFreeformInput?.addEventListener('input', () => {
     state.settings.structureFreeform = Number(dom.structureFreeformInput.value);
-    render();
+    render({ centerContent: false });
+    scheduleFitCanvasToContent(null, false);
   });
 
   dom.shadowIntensityInput?.addEventListener('input', () => {
