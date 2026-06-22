@@ -2102,6 +2102,57 @@ function cleanupCanvasLayout() {
   notify('Canvas layout cleaned up.');
 }
 
+function rebuildRowsFromCurrentLayout(layouts = rowLayouts()) {
+  const entries = Object.entries(layouts || {});
+  if (!entries.length) {
+    return false;
+  }
+
+  const horizontal = isHorizontalHierarchy();
+  const rowThreshold = horizontal
+    ? Math.max(48, currentCardSize().width * 0.72)
+    : Math.max(40, currentCardSize().height * 0.78);
+
+  const sorted = entries
+    .map(([nodeId, layout]) => ({
+      nodeId,
+      primary: horizontal ? layout.xCenter : layout.yCenter,
+      secondary: horizontal ? layout.yCenter : layout.xCenter
+    }))
+    .sort((a, b) => {
+      if (a.primary !== b.primary) {
+        return a.primary - b.primary;
+      }
+      return a.secondary - b.secondary;
+    });
+
+  const grouped = [];
+  sorted.forEach((entry) => {
+    const currentGroup = grouped[grouped.length - 1];
+    if (!currentGroup || Math.abs(entry.primary - currentGroup.primary) > rowThreshold) {
+      grouped.push({ primary: entry.primary, nodes: [entry] });
+      return;
+    }
+    currentGroup.nodes.push(entry);
+    currentGroup.primary =
+      (currentGroup.primary * (currentGroup.nodes.length - 1) + entry.primary) / currentGroup.nodes.length;
+  });
+
+  let rows = grouped.map((group) =>
+    group.nodes
+      .sort((a, b) => a.secondary - b.secondary)
+      .map((entry) => entry.nodeId)
+  );
+
+  if (state.settings.hierarchyDirection === 'bottom-up' || state.settings.hierarchyDirection === 'right-left') {
+    rows = rows.reverse();
+  }
+
+  state.rows = rows.filter((row) => row.length > 0);
+  compactRows();
+  return state.rows.length > 0;
+}
+
 function normalizeCanvasSpacing() {
   if (!state.rows.length) {
     notify('Add cards to the canvas before normalizing spacing.');
@@ -2109,13 +2160,7 @@ function normalizeCanvasSpacing() {
   }
   pushCanvasHistory();
   const layouts = rowLayouts();
-  state.rows = state.rows
-    .map((row) => row.slice().sort((a, b) => {
-      const ax = layouts[a]?.xCenter ?? 0;
-      const bx = layouts[b]?.xCenter ?? 0;
-      return ax - bx;
-    }))
-    .filter((row) => row.length > 0);
+  rebuildRowsFromCurrentLayout(layouts);
   clearManualNodePositions();
   compactRows();
   render({ centerContent: false });
