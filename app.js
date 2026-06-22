@@ -609,6 +609,7 @@ const dom = {
   undoBtn: document.getElementById('undoBtn'),
   redoBtn: document.getElementById('redoBtn'),
   fitAllBtn: document.getElementById('fitAllBtn'),
+  normalizeSpacingBtn: document.getElementById('normalizeSpacingBtn'),
   toggleMinimapBtn: document.getElementById('toggleMinimapBtn'),
   clearChartBtn: document.getElementById('clearChartBtn'),
   saveChartBtn: document.getElementById('saveChartBtn'),
@@ -2099,6 +2100,28 @@ function cleanupCanvasLayout() {
   requestAnimationFrame(() => fitCanvasToContent(rowLayouts(), true));
   scheduleStatePersistence();
   notify('Canvas layout cleaned up.');
+}
+
+function normalizeCanvasSpacing() {
+  if (!state.rows.length) {
+    notify('Add cards to the canvas before normalizing spacing.');
+    return;
+  }
+  pushCanvasHistory();
+  const layouts = rowLayouts();
+  state.rows = state.rows
+    .map((row) => row.slice().sort((a, b) => {
+      const ax = layouts[a]?.xCenter ?? 0;
+      const bx = layouts[b]?.xCenter ?? 0;
+      return ax - bx;
+    }))
+    .filter((row) => row.length > 0);
+  clearManualNodePositions();
+  compactRows();
+  render({ centerContent: false });
+  scheduleFitCanvasToContent(null, true);
+  scheduleStatePersistence();
+  notify('Card spacing normalized.');
 }
 
 function closeExportMenu() {
@@ -5889,6 +5912,9 @@ function bindControlEvents() {
     fitCanvasToContent(rowLayouts(), true);
     scheduleStatePersistence();
     notify('Fit chart to the canvas view.');
+  });
+  dom.normalizeSpacingBtn?.addEventListener('click', () => {
+    normalizeCanvasSpacing();
   });
   dom.toggleMinimapBtn?.addEventListener('click', () => {
     state.showMinimap = state.showMinimap === false;
