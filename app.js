@@ -62,9 +62,6 @@ const PRESETS = {
     blurStrength: 10,
     backgroundDepth: 0,
     floatingCards: true,
-    parallaxEnabled: false,
-    parallaxAmount: 8,
-    ambientGlow: false,
     connectorStartPoint: 'none',
     connectorEndPoint: 'arrow',
     connectorMarkers: 'arrow-end',
@@ -141,9 +138,6 @@ const PRESETS = {
     blurStrength: 10,
     backgroundDepth: 0,
     floatingCards: true,
-    parallaxEnabled: false,
-    parallaxAmount: 8,
-    ambientGlow: false,
     connectorStartPoint: 'none',
     connectorEndPoint: 'arrow',
     connectorMarkers: 'arrow-end',
@@ -210,9 +204,6 @@ const PRESETS = {
     blurStrength: 10,
     backgroundDepth: 0,
     floatingCards: true,
-    parallaxEnabled: false,
-    parallaxAmount: 8,
-    ambientGlow: false,
     connectorStartPoint: 'none',
     connectorEndPoint: 'arrow',
     connectorMarkers: 'arrow-end',
@@ -279,9 +270,6 @@ const PRESETS = {
     blurStrength: 6,
     backgroundDepth: 0,
     floatingCards: true,
-    parallaxEnabled: false,
-    parallaxAmount: 8,
-    ambientGlow: false,
     connectorStartPoint: 'none',
     connectorEndPoint: 'arrow',
     connectorMarkers: 'arrow-end',
@@ -351,6 +339,7 @@ function normalizeSettings(settings) {
   normalized.cardHeightScale = Number.isFinite(Number(normalized.cardHeightScale)) ? Number(normalized.cardHeightScale) : 100;
   normalized.bgGradientEnabled = typeof normalized.bgGradientEnabled === 'boolean' ? normalized.bgGradientEnabled : legacyGradientEnabled;
   normalized.bgGradientColor2 = normalized.bgGradientColor2 || '#dfe8f3';
+  normalized.layoutMode = normalized.layoutMode === 'swimlane' ? 'swimlane' : 'strict';
   normalized.nodeStylePreset = normalized.nodeStylePreset || 'visio-basic';
   normalized.orgChartView = normalized.orgChartView || 'standard';
   normalized.orgChartColorBy = normalized.orgChartColorBy || 'none';
@@ -391,6 +380,7 @@ function normalizeSettings(settings) {
   normalized.locationLineHeight = Number.isFinite(Number(normalized.locationLineHeight)) ? Number(normalized.locationLineHeight) : 1.12;
   normalized.cardFillPattern = normalized.cardFillPattern || 'none';
   normalized.cardLineStyle = normalized.cardLineStyle || 'solid';
+  normalized.ambientGlow = false;
   normalized.connectorColor = normalized.connectorColor || normalized.accentColor || '#8d949f';
   normalized.connectorStartColor = normalized.connectorStartColor || normalized.connectorColor || normalized.accentColor || '#8d949f';
   normalized.connectorEndColor = normalized.connectorEndColor || normalized.connectorColor || normalized.accentColor || '#8d949f';
@@ -470,6 +460,8 @@ const state = {
   rows: [],
   nodes: {},
   manualLinks: [],
+  excludedConnections: [],
+  connectionsDrawerOpen: false,
   selectedCardId: null,
   selectedMemberId: null,
   editingMemberId: null,
@@ -513,8 +505,6 @@ const dom = {
   shapeLineColorInput: document.getElementById('shapeLineColorInput'),
   shapeLineStyleInput: document.getElementById('shapeLineStyleInput'),
   shapeLineWeightInput: document.getElementById('shapeLineWeightInput'),
-  shapeShadowInput: document.getElementById('shapeShadowInput'),
-  shapeShadowIntensityInput: document.getElementById('shapeShadowIntensityInput'),
   fieldNameInput: document.getElementById('fieldNameInput'),
   fieldTitleInput: document.getElementById('fieldTitleInput'),
   fieldDepartmentInput: document.getElementById('fieldDepartmentInput'),
@@ -524,8 +514,6 @@ const dom = {
   removeDepartmentInput: document.getElementById('removeDepartmentInput'),
   removeDepartmentBtn: document.getElementById('removeDepartmentBtn'),
   clearLibraryBtn: document.getElementById('clearLibraryBtn'),
-  memberFormBox: document.getElementById('memberFormBox'),
-  memberFormSummary: document.getElementById('memberFormSummary'),
   memberEditModal: document.getElementById('memberEditModal'),
   memberEditCloseBtn: document.getElementById('memberEditCloseBtn'),
   newMemberName: document.getElementById('newMemberName'),
@@ -535,8 +523,6 @@ const dom = {
   newMemberPhoto: document.getElementById('newMemberPhoto'),
   addMemberBtn: document.getElementById('addMemberBtn'),
   cancelEditMemberBtn: document.getElementById('cancelEditMemberBtn'),
-  referenceChartInput: document.getElementById('referenceChartInput'),
-  buildFromImageBtn: document.getElementById('buildFromImageBtn'),
   cardLayer: document.getElementById('cardLayer'),
   connectorLayer: document.getElementById('connectorLayer'),
   dragDropGuide: document.getElementById('dragDropGuide'),
@@ -562,10 +548,6 @@ const dom = {
   shadowIntensityInput: document.getElementById('shadowIntensityInput'),
   blurStrengthInput: document.getElementById('blurStrengthInput'),
   backgroundDepthInput: document.getElementById('backgroundDepthInput'),
-  floatingCardsInput: document.getElementById('floatingCardsInput'),
-  parallaxEnabledInput: document.getElementById('parallaxEnabledInput'),
-  parallaxAmountInput: document.getElementById('parallaxAmountInput'),
-  ambientGlowInput: document.getElementById('ambientGlowInput'),
   connectorMarkersInput: document.getElementById('connectorMarkersInput'),
   cardVisualTypeInput: document.getElementById('cardVisualTypeInput'),
   bgColorInput: document.getElementById('bgColorInput'),
@@ -637,7 +619,6 @@ const dom = {
   exportMenuSvgBtn: document.getElementById('exportMenuSvgBtn'),
   exportMenuPptxBtn: document.getElementById('exportMenuPptxBtn'),
   exportMenuPdfBtn: document.getElementById('exportMenuPdfBtn'),
-  helpBtn: document.getElementById('helpBtn'),
   zoomOutBtn: document.getElementById('zoomOutBtn'),
   zoomResetBtn: document.getElementById('zoomResetBtn'),
   zoomInBtn: document.getElementById('zoomInBtn'),
@@ -664,6 +645,11 @@ const dom = {
   chartPermissionsTableBody: document.getElementById('chartPermissionsTableBody'),
   chartSettingsSaveBtn: document.getElementById('chartSettingsSaveBtn'),
   topbarHelpBtn: document.getElementById('topbarHelpBtn'),
+  connectionsBtn: document.getElementById('connectionsBtn'),
+  connectionsDrawer: document.getElementById('connectionsDrawer'),
+  connectionsDrawerSubtitle: document.getElementById('connectionsDrawerSubtitle'),
+  connectionsDrawerBody: document.getElementById('connectionsDrawerBody'),
+  connectionsDrawerCloseBtn: document.getElementById('connectionsDrawerCloseBtn'),
   helpModal: document.getElementById('helpModal'),
   helpCloseBtn: document.getElementById('helpCloseBtn')
 };
@@ -706,6 +692,7 @@ function canvasHistorySnapshot() {
     rows: cloneForHistory(state.rows),
     nodes: cloneForHistory(state.nodes),
     manualLinks: cloneForHistory(state.manualLinks),
+    excludedConnections: cloneForHistory(state.excludedConnections || []),
     selectedCardId: state.selectedCardId,
     nodeSequence: state.nodeSequence,
     settings: cloneForHistory(state.settings),
@@ -787,6 +774,7 @@ function restoreCanvasHistorySnapshot(snapshot) {
   state.rows = cloneForHistory(snapshot.rows);
   state.nodes = cloneForHistory(snapshot.nodes);
   state.manualLinks = cloneForHistory(snapshot.manualLinks);
+  state.excludedConnections = cloneForHistory(snapshot.excludedConnections || []);
   state.selectedCardId = snapshot.selectedCardId;
   state.nodeSequence = snapshot.nodeSequence;
   state.settings = normalizeSettings(cloneForHistory(snapshot.settings));
@@ -991,8 +979,8 @@ function getBodyMetrics() {
   const sidePadding = (state.settings.cardStyle === 'pill' ? 34 : 24) * spacing;
   const topPadding = (state.settings.cardStyle === 'intro' ? 24 : 16) * spacing;
   const bottomPadding = (state.settings.cardStyle === 'intro' ? 30 : 18) * spacing;
-  const stageWidth = Math.min(Math.max(bodyWidth * 0.82, 1080), Math.max(base.width * 0.56, 1080));
-  const stageHeight = Math.min(Math.max(bodyHeight * 0.76, 640), Math.max(base.height * 0.48, 640));
+  const stageWidth = Math.min(Math.max(bodyWidth * 0.66, 840), Math.max(base.width * 0.45, 840));
+  const stageHeight = Math.min(Math.max(bodyHeight * 0.56, 500), Math.max(base.height * 0.36, 500));
   const centerX = base.width / 2;
   const centerY = base.height / 2;
   const stageLeft = centerX - stageWidth / 2;
@@ -1059,8 +1047,11 @@ function computeRowCenters(rowLength) {
     return [(metrics.left + metrics.right) / 2];
   }
   const span = metrics.right - metrics.left;
-  const step = span / Math.max(1, rowLength - 1);
-  return Array.from({ length: rowLength }, (_, index) => metrics.left + index * step);
+  const spacingAmount = clamp(Number(state.settings.structureFreeform || 0) / 100, 0, 1);
+  const compactSpan = span * (0.56 + spacingAmount * 0.42);
+  const start = metrics.left + (span - compactSpan) / 2;
+  const step = compactSpan / Math.max(1, rowLength - 1);
+  return Array.from({ length: rowLength }, (_, index) => start + index * step);
 }
 
 function findRowForPrimaryAxis(primaryPoint) {
@@ -1135,6 +1126,37 @@ function clearConnectTargetHighlights() {
     element.classList.remove('connect-target');
     element.removeAttribute('data-connect-side');
   });
+}
+
+function connectionKey(fromId, toId) {
+  return `${fromId}::${toId}`;
+}
+
+function excludedConnectionSet() {
+  return new Set(Array.isArray(state.excludedConnections) ? state.excludedConnections : []);
+}
+
+function isConnectionExcluded(fromId, toId) {
+  const exclusions = excludedConnectionSet();
+  return exclusions.has(connectionKey(fromId, toId));
+}
+
+function excludeConnection(fromId, toId) {
+  const key = connectionKey(fromId, toId);
+  if (!Array.isArray(state.excludedConnections)) {
+    state.excludedConnections = [];
+  }
+  if (!state.excludedConnections.includes(key)) {
+    state.excludedConnections.push(key);
+  }
+}
+
+function restoreConnection(fromId, toId) {
+  const key = connectionKey(fromId, toId);
+  if (!Array.isArray(state.excludedConnections)) {
+    state.excludedConnections = [];
+  }
+  state.excludedConnections = state.excludedConnections.filter((entry) => entry !== key);
 }
 
 function rowAxisCenters() {
@@ -1662,9 +1684,6 @@ function resetMemberForm() {
   if (dom.newMemberDepartment) dom.newMemberDepartment.value = '';
   if (dom.newMemberEmail) dom.newMemberEmail.value = '';
   if (dom.newMemberPhoto) dom.newMemberPhoto.value = '';
-  if (dom.memberFormSummary) {
-    dom.memberFormSummary.textContent = 'Build From Image';
-  }
   if (dom.addMemberBtn) {
     dom.addMemberBtn.textContent = 'Add Member';
   }
@@ -1690,9 +1709,6 @@ function startMemberEdit(memberId) {
   dom.newMemberDepartment.value = member.department || '';
   if (dom.newMemberEmail) dom.newMemberEmail.value = member.email || '';
   dom.newMemberPhoto.value = '';
-  if (dom.memberFormSummary) {
-    dom.memberFormSummary.textContent = 'Edit Team Member';
-  }
   if (dom.addMemberBtn) {
     dom.addMemberBtn.textContent = 'Save Changes';
   }
@@ -2291,10 +2307,13 @@ function rowLayouts() {
           : metrics.left + ((metrics.right - metrics.left) / (targetRowCount - 1)) * displayRowIndex;
       const directionalXCenter =
         state.settings.hierarchyDirection === 'right-left' ? metrics.left + metrics.right - xCenter : xCenter;
+      const ySpan = metrics.bottom - metrics.top;
+      const compactYSpan = ySpan * 0.82;
+      const yStart = metrics.top + (ySpan - compactYSpan) / 2;
       const yCenters =
         row.length <= 1
           ? [(metrics.top + metrics.bottom) / 2]
-          : Array.from({ length: row.length }, (_, index) => metrics.top + ((metrics.bottom - metrics.top) / (row.length - 1)) * index);
+          : Array.from({ length: row.length }, (_, index) => yStart + (compactYSpan / (row.length - 1)) * index);
       row.forEach((nodeId, columnIndex) => {
         layouts[nodeId] = {
           xCenter: directionalXCenter,
@@ -2396,7 +2415,9 @@ function rowLayouts() {
       layout.x = layout.xCenter - layout.width / 2;
     }
 
-    const freeShift = (hashToUnit(`${nodeId}-free`) - 0.5) * 34 * freeformAmount * 0.6;
+    const freeShift = (mode === 'organic' || mode === 'physics')
+      ? (hashToUnit(`${nodeId}-free`) - 0.5) * 34 * freeformAmount * 0.6
+      : 0;
     if (mode !== 'strict' && mode !== 'symmetrical') {
       layout.x += freeShift;
       layout.xCenter += freeShift;
@@ -2987,7 +3008,9 @@ function autoLinkPairs(layouts) {
         }
       });
 
-      links.push({ from: nearestParent, to: childNodeId });
+      if (!isConnectionExcluded(nearestParent, childNodeId)) {
+        links.push({ from: nearestParent, to: childNodeId });
+      }
     });
   }
   return links;
@@ -3068,12 +3091,87 @@ function renderConnectors(layouts) {
   const typeProfile = connectorTypePreset(state.settings.connectorType);
   const baseDash = typeProfile.dash || '';
   const selectedNodeId = state.selectedCardId;
+  const branchPalette = ['#ef4444', '#f97316', '#8b5cf6', '#06b6d4', '#10b981', '#f59e0b', '#14b8a6', '#d946ef'];
+  const branchColorMap = new Map();
+  const adjacency = new Map();
 
-  function pushPath(fromId, toId, fromLayout, toLayout, stroke, width, opacity = 0.8) {
+  function registerEdge(a, b, meta) {
+    if (!adjacency.has(a)) {
+      adjacency.set(a, []);
+    }
+    if (!adjacency.has(b)) {
+      adjacency.set(b, []);
+    }
+    adjacency.get(a).push({ other: b, meta });
+    adjacency.get(b).push({ other: a, meta });
+  }
+
+  function buildGraphColoring() {
+    if (!selectedNodeId) {
+      return;
+    }
+    const edges = [];
+    if (state.autoConnect) {
+      autoLinkPairs(layouts).forEach((link) => {
+        if (layouts[link.from] && layouts[link.to]) {
+          edges.push({ from: link.from, to: link.to, key: `auto:${connectionKey(link.from, link.to)}` });
+        }
+      });
+    }
+    state.manualLinks.forEach((link) => {
+      if (layouts[link.from] && layouts[link.to]) {
+        if (!isConnectionExcluded(link.from, link.to)) {
+          edges.push({ from: link.from, to: link.to, key: `manual:${connectionKey(link.from, link.to)}` });
+        }
+      }
+    });
+
+    edges.forEach((edge) => {
+      registerEdge(edge.from, edge.to, edge);
+    });
+
+    const queue = [];
+    const visitedNodes = new Set([selectedNodeId]);
+    const visitedEdges = new Set();
+    const rootNeighbors = adjacency.get(selectedNodeId) || [];
+
+    rootNeighbors.forEach((entry, index) => {
+      const color = branchPalette[index % branchPalette.length];
+      branchColorMap.set(entry.meta.key, color);
+      queue.push({ nodeId: entry.other, color });
+      visitedEdges.add(entry.meta.key);
+    });
+
+    while (queue.length) {
+      const current = queue.shift();
+      if (visitedNodes.has(current.nodeId)) {
+        continue;
+      }
+      visitedNodes.add(current.nodeId);
+      const neighbors = adjacency.get(current.nodeId) || [];
+      neighbors.forEach((entry) => {
+        if (visitedEdges.has(entry.meta.key)) {
+          return;
+        }
+        visitedEdges.add(entry.meta.key);
+        if (!branchColorMap.has(entry.meta.key)) {
+          branchColorMap.set(entry.meta.key, current.color);
+        }
+        if (!visitedNodes.has(entry.other)) {
+          queue.push({ nodeId: entry.other, color: current.color });
+        }
+      });
+    }
+  }
+
+  buildGraphColoring();
+
+  function pushPath(fromId, toId, fromLayout, toLayout, stroke, width, opacity = 0.8, edgeKey = null) {
     const d = pathBetweenCards(fromLayout, toLayout);
-    const isHighlighted = Boolean(selectedNodeId && (fromId === selectedNodeId || toId === selectedNodeId));
-    const strokeColor = isHighlighted ? (state.settings.accentColor || stroke) : stroke;
-    const strokeOpacity = isHighlighted ? 1 : opacity;
+    const resolvedEdgeKey = edgeKey || `${fromId}:${toId}`;
+    const isHighlighted = Boolean(selectedNodeId && branchColorMap.has(resolvedEdgeKey));
+    const strokeColor = isHighlighted ? branchColorMap.get(resolvedEdgeKey) : '#c7ced8';
+    const strokeOpacity = isHighlighted ? 1 : 0.35;
     const dashValue = baseDash;
     const markerStart = startMarker === 'arrow' ? 'url(#connector-arrow-start)' : startMarker === 'dot' ? 'url(#connector-dot-start)' : startMarker === 'square' ? 'url(#connector-square-start)' : '';
     const markerEnd = endMarker === 'arrow' ? 'url(#connector-arrow-end)' : endMarker === 'dot' ? 'url(#connector-dot-end)' : endMarker === 'square' ? 'url(#connector-square-end)' : '';
@@ -3083,15 +3181,15 @@ function renderConnectors(layouts) {
     if (typeProfile.double) {
       const offset = doubleLineOffset(fromLayout, toLayout);
       paths.push(
-        `<path d="${d}" class="connector-line${isHighlighted ? ' connector-highlight' : ''}" fill="none" stroke="${strokeColor}" opacity="${strokeOpacity * 0.95}" ${dashValue ? `stroke-dasharray="${dashValue}"` : ''} ${offset.x || offset.y ? `transform="translate(${offset.x}, ${offset.y})"` : ''} stroke-linecap="${linecap}" stroke-linejoin="${linejoin}" style="stroke-width:${Math.max(1, width - 1)}px;"></path>`
+        `<path d="${d}" class="connector-line${isHighlighted ? ' connector-highlight' : ''}" fill="none" stroke="${strokeColor}" opacity="${strokeOpacity * 0.95}" ${dashValue ? `stroke-dasharray="${dashValue}"` : ''} ${offset.x || offset.y ? `transform="translate(${offset.x}, ${offset.y})"` : ''} stroke-linecap="${linecap}" stroke-linejoin="${linejoin}" style="stroke-width:${Math.max(1, width + (isHighlighted ? 2 : -1))}px;"></path>`
       );
       paths.push(
-        `<path d="${d}" class="connector-line${isHighlighted ? ' connector-highlight' : ''}" fill="none" stroke="${strokeColor}" opacity="${strokeOpacity * 0.95}" ${dashValue ? `stroke-dasharray="${dashValue}"` : ''} ${offset.x || offset.y ? `transform="translate(${-offset.x}, ${-offset.y})"` : ''} stroke-linecap="${linecap}" stroke-linejoin="${linejoin}" style="stroke-width:${Math.max(1, width - 1)}px;"></path>`
+        `<path d="${d}" class="connector-line${isHighlighted ? ' connector-highlight' : ''}" fill="none" stroke="${strokeColor}" opacity="${strokeOpacity * 0.95}" ${dashValue ? `stroke-dasharray="${dashValue}"` : ''} ${offset.x || offset.y ? `transform="translate(${-offset.x}, ${-offset.y})"` : ''} stroke-linecap="${linecap}" stroke-linejoin="${linejoin}" style="stroke-width:${Math.max(1, width + (isHighlighted ? 2 : -1))}px;"></path>`
       );
     }
 
     paths.push(
-      `<path d="${d}" class="connector-line${isHighlighted ? ' connector-highlight' : ''}" fill="none" stroke="${strokeColor}" opacity="${strokeOpacity}" ${dashValue ? `stroke-dasharray="${dashValue}"` : ''} ${markerStart ? `marker-start="${markerStart}"` : ''} ${markerEnd ? `marker-end="${markerEnd}"` : ''} stroke-linecap="${linecap}" stroke-linejoin="${linejoin}" style="stroke-width:${width}px;"></path>`
+      `<path d="${d}" class="connector-line${isHighlighted ? ' connector-highlight' : ''}" fill="none" stroke="${strokeColor}" opacity="${strokeOpacity}" ${dashValue ? `stroke-dasharray="${dashValue}"` : ''} ${markerStart ? `marker-start="${markerStart}"` : ''} ${markerEnd ? `marker-end="${markerEnd}"` : ''} stroke-linecap="${linecap}" stroke-linejoin="${linejoin}" style="stroke-width:${isHighlighted ? width + 2 : width}px;"></path>`
     );
   }
 
@@ -3100,7 +3198,7 @@ function renderConnectors(layouts) {
       const fromLayout = layouts[link.from];
       const toLayout = layouts[link.to];
       if (fromLayout && toLayout) {
-        pushPath(link.from, link.to, fromLayout, toLayout, '#8d949f', strokeWidth, 0.8);
+        pushPath(link.from, link.to, fromLayout, toLayout, '#8d949f', strokeWidth, 0.8, `auto:${connectionKey(link.from, link.to)}`);
       }
     });
   }
@@ -3111,9 +3209,12 @@ function renderConnectors(layouts) {
     if (!fromLayout || !toLayout) {
       return;
     }
+    if (isConnectionExcluded(link.from, link.to)) {
+      return;
+    }
     const manualStroke = link.stroke || state.settings.connectorEndColor || state.settings.connectorColor || state.settings.accentColor;
     const manualWidth = Math.max(1, strokeWidth + 1 + Number(link.widthOffset || 0));
-    pushPath(link.from, link.to, fromLayout, toLayout, manualStroke, Math.max(manualWidth, 3), 1);
+    pushPath(link.from, link.to, fromLayout, toLayout, manualStroke, Math.max(manualWidth, 3), 1, `manual:${connectionKey(link.from, link.to)}`);
   });
 
   const arrowWidth = 18;
@@ -3510,6 +3611,7 @@ function refreshCanvas(persist = true, options = {}) {
   const layouts = rowLayouts();
   renderCards(layouts);
   renderConnectors(layouts);
+  renderConnectionsDrawer(layouts);
   updateToolbarViewButtons();
   updateMinimap(layouts);
   updateHistoryButtons();
@@ -4971,90 +5073,6 @@ function applyImageDetectedLayout(detectedPeople, imageSize = null) {
   requestAnimationFrame(() => fitCanvasToContent(rowLayouts(), false));
 }
 
-async function buildChartFromImage() {
-  const file = dom.referenceChartInput?.files?.[0];
-  if (!file) {
-    notify('Choose a reference org chart image first.');
-    return;
-  }
-  if (!state.members.length) {
-    notify('Load the Team Management ZIP before building from an image.');
-    return;
-  }
-  if (!window.Tesseract) {
-    notify('Image OCR is still loading. Try again in a moment.');
-    return;
-  }
-
-  notify('Reading org chart image...');
-  removeImagePlaceholderMembers();
-  const imageSize = await getImageDimensions(file);
-  let imageAnalysis = null;
-  let detectedCardBoxes = [];
-  let connectorSegments = [];
-  try {
-    imageAnalysis = await loadImageAnalysisCanvas(file);
-    detectedCardBoxes = detectCardBoxesFromImageAnalysis(imageAnalysis);
-    connectorSegments = detectConnectorSegmentsFromImageAnalysis(imageAnalysis, detectedCardBoxes);
-  } catch (error) {
-    console.warn('Could not visually trace chart cards.', error);
-  }
-  const result = await window.Tesseract.recognize(file, 'eng', {
-    logger: (message) => {
-      if (message.status === 'recognizing text') {
-        notify(`Reading image... ${Math.round((message.progress || 0) * 100)}%`);
-      }
-    }
-  });
-
-  const lines = getOcrLines(result);
-  const detectedCards = detectedCardsFromOcrAndImage(lines, detectedCardBoxes);
-  if (detectedCards.length) {
-    applyImageDetectedCardsLayout(detectedCards, imageSize, connectorSegments);
-    const placeholderCount = detectedCards.filter((card) => card.source === 'visual-placeholder').length;
-    notify(`Built chart from image: detected ${detectedCardBoxes.length || detectedCards.length} visual cards, generated ${detectedCards.length} cards (${detectedCards.length - placeholderCount} matched, ${placeholderCount} placeholders)${connectorSegments.length ? ` and traced ${connectorSegments.length} connectors` : ''}.`);
-    renderLibrary();
-    return;
-  }
-
-  const usedMemberIds = new Set();
-  const detectedPeople = [];
-
-  lines.forEach((line) => {
-    const directMatch = bestMemberForText(line.text, usedMemberIds);
-    if (directMatch) {
-      usedMemberIds.add(directMatch.member.id);
-      detectedPeople.push({ ...line, member: directMatch.member, source: 'name' });
-    }
-  });
-
-  lines.forEach((line) => {
-    if (detectedPeople.some((item) => Math.abs(item.x - line.x) < 16 && Math.abs(item.y - line.y) < 16)) {
-      return;
-    }
-    const maybeName = textTokens(line.text).length >= 2;
-    if (!maybeName) {
-      return;
-    }
-    const department = inferDepartmentFromNearbyText(line, lines);
-    const fallback = fallbackMemberFromDepartment(department, usedMemberIds);
-    if (fallback) {
-      usedMemberIds.add(fallback.id);
-      detectedPeople.push({ ...line, member: fallback, source: 'department' });
-    }
-  });
-
-  if (!detectedPeople.length) {
-    notify('No matching team members found in that image.');
-    return;
-  }
-
-  applyImageDetectedLayout(detectedPeople, imageSize);
-  const exactCount = detectedPeople.filter((item) => item.source === 'name').length;
-  const fallbackCount = detectedPeople.length - exactCount;
-  notify(`Built chart from image: ${exactCount} name matches, ${fallbackCount} department fallbacks.`);
-}
-
 function employeeFieldSettingsFromControls() {
   return {
     name: dom.fieldNameInput?.checked !== false,
@@ -5338,7 +5356,7 @@ function syncControls() {
     dom.formatDirectionInput.value = state.settings.hierarchyDirection;
   }
   if (dom.formatAdvancedLayoutInput) {
-    dom.formatAdvancedLayoutInput.value = state.settings.layoutMode || 'strict';
+    dom.formatAdvancedLayoutInput.value = state.settings.layoutMode === 'swimlane' ? 'swimlane' : 'strict';
   }
   if (dom.formatNodeStyleInput) {
     dom.formatNodeStyleInput.value = state.settings.nodeStylePreset || 'visio-basic';
@@ -5352,8 +5370,6 @@ function syncControls() {
   if (dom.shapeLineColorInput) dom.shapeLineColorInput.value = state.settings.outlineColor;
   if (dom.shapeLineStyleInput) dom.shapeLineStyleInput.value = state.settings.cardLineStyle || 'solid';
   if (dom.shapeLineWeightInput) dom.shapeLineWeightInput.value = String(state.settings.outlineWidth ?? 1);
-  if (dom.shapeShadowInput) dom.shapeShadowInput.checked = state.settings.showShadow === true;
-  if (dom.shapeShadowIntensityInput) dom.shapeShadowIntensityInput.value = String(state.settings.shadowIntensity ?? 100);
   const fields = state.settings.employeeFields || {};
   if (dom.fieldNameInput) dom.fieldNameInput.checked = fields.name !== false;
   if (dom.fieldTitleInput) dom.fieldTitleInput.checked = fields.title !== false;
@@ -5382,14 +5398,6 @@ function syncControls() {
   setValue(dom.shadowIntensityInput, String(state.settings.shadowIntensity ?? 100));
   setValue(dom.blurStrengthInput, String(state.settings.blurStrength ?? 10));
   setValue(dom.backgroundDepthInput, String(state.settings.backgroundDepth ?? 24));
-  setChecked(dom.floatingCardsInput, state.settings.floatingCards !== false);
-  setChecked(dom.parallaxEnabledInput, state.settings.parallaxEnabled === true);
-  setValue(dom.parallaxAmountInput, String(state.settings.parallaxAmount ?? 8));
-  setChecked(dom.ambientGlowInput, state.settings.ambientGlow === true);
-  setValue(dom.connectorStartPointsInput, state.settings.connectorStartPoint || 'none');
-  setValue(dom.connectorMarkersInput, state.settings.connectorEndPoint || 'none');
-  setValue(dom.connectorStartMarkerScaleInput, String(state.settings.connectorStartMarkerScale ?? 1));
-  if (dom.connectorStartMarkerScaleValue) dom.connectorStartMarkerScaleValue.textContent = `${Number(state.settings.connectorStartMarkerScale ?? 1).toFixed(1)}x`;
   setValue(dom.cardVisualTypeInput, state.settings.cardVisualType || 'standard');
   setValue(dom.bgColorInput, state.settings.bgColor);
   setChecked(dom.bgGradientEnabledInput, state.settings.bgGradientEnabled === true);
@@ -5460,13 +5468,6 @@ function bindControlEvents() {
     resetMemberForm();
     notify('Edit canceled.');
   });
-  dom.buildFromImageBtn?.addEventListener('click', () => {
-    pushCanvasHistory();
-    buildChartFromImage().catch((error) => {
-      console.error(error);
-      notify('Could not build a chart from that image.');
-    });
-  });
   dom.removeDepartmentBtn?.addEventListener('click', removeDepartment);
   dom.clearLibraryBtn?.addEventListener('click', clearLibraryMembers);
   dom.libraryZipInput?.addEventListener('change', () => {
@@ -5481,6 +5482,16 @@ function bindControlEvents() {
     runLibraryZipImport(dom.libraryZipInput?.files?.[0]);
   });
   dom.removeLibraryZipBtn?.addEventListener('click', removeLibraryZip);
+
+  dom.connectionsBtn?.addEventListener('click', () => {
+    state.connectionsDrawerOpen = !state.connectionsDrawerOpen;
+    render({ persist: false, centerContent: false });
+  });
+
+  dom.connectionsDrawerCloseBtn?.addEventListener('click', () => {
+    state.connectionsDrawerOpen = false;
+    render({ persist: false, centerContent: false });
+  });
 
   dom.formatDirectionInput?.addEventListener('change', () => {
     applyDirectionalLayout(dom.formatDirectionInput.value);
@@ -5601,18 +5612,6 @@ function bindControlEvents() {
     scheduleTypographyRefresh();
   });
 
-  dom.shapeShadowInput?.addEventListener('change', () => {
-    state.settings.showShadow = dom.shapeShadowInput.checked;
-    state.settings.nodeStylePreset = 'custom';
-    scheduleTypographyRefresh();
-  });
-
-  dom.shapeShadowIntensityInput?.addEventListener('input', () => {
-    state.settings.shadowIntensity = Number(dom.shapeShadowIntensityInput.value);
-    state.settings.nodeStylePreset = 'custom';
-    scheduleTypographyRefresh();
-  });
-
   [
     dom.fieldNameInput,
     dom.fieldTitleInput,
@@ -5711,30 +5710,6 @@ function bindControlEvents() {
 
   dom.backgroundDepthInput?.addEventListener('input', () => {
     state.settings.backgroundDepth = Number(dom.backgroundDepthInput.value);
-    scheduleTypographyRefresh();
-  });
-
-  dom.floatingCardsInput?.addEventListener('change', () => {
-    state.settings.floatingCards = dom.floatingCardsInput.checked;
-    render();
-  });
-
-  dom.parallaxEnabledInput?.addEventListener('change', () => {
-    state.settings.parallaxEnabled = dom.parallaxEnabledInput.checked;
-    if (!state.settings.parallaxEnabled) {
-      dom.cardLayer.style.transform = 'translate3d(0, 0, 0)';
-      dom.connectorLayer.style.transform = 'translate3d(0, 0, 0)';
-    }
-    render();
-  });
-
-  dom.parallaxAmountInput?.addEventListener('input', () => {
-    state.settings.parallaxAmount = Number(dom.parallaxAmountInput.value);
-    render();
-  });
-
-  dom.ambientGlowInput?.addEventListener('change', () => {
-    state.settings.ambientGlow = dom.ambientGlowInput.checked;
     scheduleTypographyRefresh();
   });
 
@@ -5972,7 +5947,6 @@ function bindControlEvents() {
       notify('Edit canceled.');
     }
   });
-  dom.helpBtn?.addEventListener('click', openHelpModal);
   dom.helpCloseBtn?.addEventListener('click', closeHelpModal);
   dom.helpModal?.addEventListener('click', (event) => {
     if (event.target === dom.helpModal) {
@@ -6060,12 +6034,6 @@ function bindControlEvents() {
     addNode(memberId, x, y, { persist: false });
     scheduleStatePersistence();
     notify('Card added to canvas.');
-  });
-
-  dom.slide?.addEventListener('pointermove', applyParallaxFromPointer);
-  dom.slide?.addEventListener('pointerleave', () => {
-    dom.cardLayer.style.transform = 'translate3d(0, 0, 0)';
-    dom.connectorLayer.style.transform = 'translate3d(0, 0, 0)';
   });
 
   let resizeFrame = null;
@@ -6592,24 +6560,6 @@ function scalePreview() {
   applyCanvasZoom(state.canvasZoom);
 }
 
-function applyParallaxFromPointer(event) {
-  if (!state.settings.parallaxEnabled) {
-    dom.cardLayer.style.transform = 'translate3d(0, 0, 0)';
-    dom.connectorLayer.style.transform = 'translate3d(0, 0, 0)';
-    return;
-  }
-  const rect = dom.slide.getBoundingClientRect();
-  const px = clamp((event.clientX - rect.left) / rect.width, 0, 1) - 0.5;
-  const py = clamp((event.clientY - rect.top) / rect.height, 0, 1) - 0.5;
-  const amount = clamp(Number(state.settings.parallaxAmount || 8), 0, 24);
-  const cardX = Math.round(px * amount * 2);
-  const cardY = Math.round(py * amount * 2);
-  const lineX = Math.round(px * amount * 1.2);
-  const lineY = Math.round(py * amount * 1.2);
-  dom.cardLayer.style.transform = `translate3d(${cardX}px, ${cardY}px, 0)`;
-  dom.connectorLayer.style.transform = `translate3d(${lineX}px, ${lineY}px, 0)`;
-}
-
 function membersForStorage() {
   return state.members.map((member, index) => {
     const storedPhoto = String(member.photo || '').startsWith('blob:') ? '' : member.photo;
@@ -6956,6 +6906,143 @@ function renderChartArchive() {
   });
 }
 
+function getSelectedCardConnectionEntries(layouts) {
+  const selectedNodeId = state.selectedCardId;
+  if (!selectedNodeId) {
+    return { entries: [], selectedMember: null };
+  }
+
+  const entries = [];
+  const selectedMemberId = state.nodes[selectedNodeId]?.memberId || null;
+  const selectedMember = selectedMemberId ? getMemberById(selectedMemberId) : null;
+
+  if (state.autoConnect) {
+    autoLinkPairs(layouts).forEach((link) => {
+      if (isConnectionExcluded(link.from, link.to)) {
+        return;
+      }
+      if (link.from === selectedNodeId || link.to === selectedNodeId) {
+        const otherId = link.from === selectedNodeId ? link.to : link.from;
+        const otherMember = state.nodes[otherId] ? getMemberById(state.nodes[otherId].memberId) : null;
+        entries.push({
+          key: `auto:${connectionKey(link.from, link.to)}`,
+          from: link.from,
+          to: link.to,
+          otherId,
+          otherName: otherMember?.name || 'Unknown',
+          otherTitle: otherMember?.title || '',
+          type: 'Auto'
+        });
+      }
+    });
+  }
+
+  state.manualLinks.forEach((link) => {
+    if (isConnectionExcluded(link.from, link.to)) {
+      return;
+    }
+    if (link.from === selectedNodeId || link.to === selectedNodeId) {
+      const otherId = link.from === selectedNodeId ? link.to : link.from;
+      const otherMember = state.nodes[otherId] ? getMemberById(state.nodes[otherId].memberId) : null;
+      entries.push({
+        key: `manual:${connectionKey(link.from, link.to)}`,
+        from: link.from,
+        to: link.to,
+        otherId,
+        otherName: otherMember?.name || 'Unknown',
+        otherTitle: otherMember?.title || '',
+        type: 'Manual'
+      });
+    }
+  });
+
+  entries.sort((a, b) => a.otherName.localeCompare(b.otherName) || a.type.localeCompare(b.type));
+  return { entries, selectedMember };
+}
+
+function renderConnectionsDrawer(layouts = rowLayouts()) {
+  if (!dom.connectionsDrawer || !dom.connectionsDrawerBody) {
+    return;
+  }
+
+  const isOpen = state.connectionsDrawerOpen === true;
+  dom.connectionsDrawer.classList.toggle('is-hidden', !isOpen);
+  dom.connectionsBtn?.classList.toggle('is-active', isOpen);
+  dom.connectionsBtn?.setAttribute('aria-pressed', String(isOpen));
+  if (!isOpen) {
+    return;
+  }
+
+  const selectedNodeId = state.selectedCardId;
+  const selectedData = selectedNodeId ? getSelectedCardConnectionEntries(layouts) : { entries: [], selectedMember: null };
+  const entries = selectedData.entries || [];
+  const selectedMember = selectedData.selectedMember;
+
+  if (dom.connectionsDrawerSubtitle) {
+    dom.connectionsDrawerSubtitle.textContent = selectedMember
+      ? `Managing links for ${selectedMember.name}.`
+      : 'Select a card to manage its links.';
+  }
+
+  if (!selectedNodeId) {
+    dom.connectionsDrawerBody.innerHTML = '<div class="connections-empty-state">Pick a card on the canvas to review its current connections, disconnect a manual link, or hide an auto-generated branch from this chart.</div>';
+    return;
+  }
+
+  const grouped = entries.reduce((acc, entry) => {
+    const groupName = entry.from === selectedNodeId ? 'Outgoing' : 'Incoming';
+    if (!acc[groupName]) {
+      acc[groupName] = [];
+    }
+    acc[groupName].push(entry);
+    return acc;
+  }, {});
+
+  const sectionHtml = ['Outgoing', 'Incoming']
+    .filter((sectionName) => (grouped[sectionName] || []).length)
+    .map((sectionName) => {
+      const items = grouped[sectionName]
+        .map((entry) => `
+          <div class="connection-item" data-connection-key="${entry.key}" data-connection-from="${entry.from}" data-connection-to="${entry.to}">
+            <div class="connection-item-main">
+              <div class="connection-item-title">${escapeHtml(entry.otherName)}</div>
+              <div class="connection-item-subtitle">${escapeHtml(entry.otherTitle || 'Connection')} · ${sectionName}</div>
+            </div>
+            <div class="connection-item-actions">
+              <span class="connection-chip">${escapeHtml(entry.type)}</span>
+              <button class="connection-remove-btn" type="button" data-remove-connection="${entry.key}">${entry.type === 'Auto' ? 'Hide' : 'Remove'}</button>
+            </div>
+          </div>
+        `)
+        .join('');
+      return `
+        <section class="connections-section">
+          <h4>${sectionName}</h4>
+          ${items}
+        </section>
+      `;
+    })
+    .join('');
+
+  dom.connectionsDrawerBody.innerHTML = sectionHtml || '<div class="connections-empty-state">This card has no visible connections right now.</div>';
+
+  dom.connectionsDrawerBody.querySelectorAll('[data-remove-connection]').forEach((button) => {
+    button.addEventListener('click', () => {
+      const key = button.dataset.removeConnection || '';
+      const entry = entries.find((item) => item.key === key);
+      if (!entry) {
+        return;
+      }
+      pushCanvasHistory();
+      excludeConnection(entry.from, entry.to);
+      state.manualLinks = state.manualLinks.filter((link) => !(link.from === entry.from && link.to === entry.to));
+      render({ centerContent: false });
+      scheduleStatePersistence();
+      renderConnectionsDrawer(rowLayouts());
+    });
+  });
+}
+
 function updateSavedChartDetails(chartId, cardEl) {
   const chart = state.savedCharts.find((item) => item.id === chartId);
   if (!chart || !cardEl) {
@@ -7113,6 +7200,7 @@ function buildStatePayload(options = {}) {
     rows: state.rows,
     nodes: state.nodes,
     manualLinks: state.manualLinks,
+    excludedConnections: state.excludedConnections || [],
     nodeSequence: state.nodeSequence,
     settings: state.settings,
     autoConnect: state.autoConnect,
@@ -7470,6 +7558,7 @@ function applyStatePayload(parsed) {
   state.rows = Array.isArray(parsed.rows) ? parsed.rows : state.rows;
   state.nodes = parsed.nodes && typeof parsed.nodes === 'object' ? parsed.nodes : state.nodes;
   state.manualLinks = Array.isArray(parsed.manualLinks) ? parsed.manualLinks : state.manualLinks;
+  state.excludedConnections = Array.isArray(parsed.excludedConnections) ? parsed.excludedConnections : state.excludedConnections;
   state.selectedCardId = null;
   state.nodeSequence = parsed.nodeSequence || state.nodeSequence || 1;
   if (parsed.settings) {

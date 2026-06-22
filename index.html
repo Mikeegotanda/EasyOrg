@@ -43,8 +43,8 @@
         <p>Drag people onto the slide canvas</p>
       </div>
 
-      <details class="add-member-box">
-        <summary>Data Upload</summary>
+      <details class="add-member-box library-dropdown" open>
+        <summary>Team Members</summary>
         <div class="field-stack compact">
           <label for="libraryZipInput">Team Management Data ZIP</label>
           <div class="upload-action-row">
@@ -56,18 +56,6 @@
           Choose an EasyOrg ZIP to load the team library.
         </div>
         <div class="section-divider"></div>
-        <details id="memberFormBox" class="embedded-upload-box">
-          <summary id="memberFormSummary">Build From Image</summary>
-          <div class="field-stack compact">
-            <label for="referenceChartInput">Reference Org Chart Image</label>
-            <input id="referenceChartInput" type="file" accept="image/*" />
-          </div>
-          <button id="buildFromImageBtn" class="btn btn-primary full-span" type="button">Create Chart From Image</button>
-        </details>
-      </details>
-
-      <details class="add-member-box library-dropdown" open>
-        <summary>Team Members</summary>
         <div class="library-filter-grid">
           <div class="field-stack compact">
             <label for="memberSearch">Search</label>
@@ -158,11 +146,11 @@
             </span>
             <span class="sr-only toolbar-btn-label">Hide Mini Map</span>
           </button>
-          <button id="helpBtn" class="btn icon-btn toolbar-btn" type="button" aria-label="Help" title="Help">
+          <button id="connectionsBtn" class="btn icon-btn toolbar-btn" type="button" aria-label="Connections" title="Connections" aria-pressed="false">
             <span class="toolbar-btn-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true"><circle cx="12" cy="12" r="8.5" /><path d="M9.8 9.4a2.3 2.3 0 1 1 4.2 1.3c-.7.9-1.8 1.3-1.8 2.8" /><path d="M12 17.2h0" /></svg>
+              <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true"><path d="M7 7h4a4 4 0 0 1 4 4v0a4 4 0 0 1-4 4H7" /><path d="M17 7h-4a4 4 0 0 0-4 4v0a4 4 0 0 0 4 4h4" /><path d="M7 12h10" /></svg>
             </span>
-            <span class="sr-only">Help</span>
+            <span class="sr-only">Connections</span>
           </button>
         </div>
         <div class="toolbar-divider" aria-hidden="true"></div>
@@ -188,6 +176,16 @@
         <div id="minimapContent" class="minimap-content"></div>
         <div id="minimapViewport" class="minimap-viewport"></div>
       </div>
+      <aside id="connectionsDrawer" class="connections-drawer is-hidden" aria-label="Card connections">
+        <div class="connections-drawer-header">
+          <div>
+            <h3>Connections</h3>
+            <p id="connectionsDrawerSubtitle">Select a card to manage its links.</p>
+          </div>
+          <button id="connectionsDrawerCloseBtn" class="connections-drawer-close" type="button" aria-label="Close connections">&times;</button>
+        </div>
+        <div id="connectionsDrawerBody" class="connections-drawer-body"></div>
+      </aside>
     </main>
 
     <aside class="panel panel-right">
@@ -199,39 +197,23 @@
       <details class="control-dropdown">
         <summary>Format</summary>
         <div class="control-section format-org-section">
-          <div class="field-stack compact">
-            <label for="formatDirectionInput">Directional Layout</label>
-            <select id="formatDirectionInput">
-              <option value="top-down">Top Down</option>
-              <option value="left-right">Left to Right</option>
-              <option value="right-left">Right to Left</option>
-              <option value="bottom-up">Bottom Up</option>
-            </select>
-          </div>
           <div class="grid-2">
+            <div class="field-stack compact">
+              <label for="formatDirectionInput">Directional Layout</label>
+              <select id="formatDirectionInput">
+                <option value="top-down">Top Down</option>
+                <option value="left-right">Left to Right</option>
+                <option value="right-left">Right to Left</option>
+                <option value="bottom-up">Bottom Up</option>
+              </select>
+            </div>
             <div class="field-stack compact">
               <label for="formatAdvancedLayoutInput">Advanced Layout</label>
               <select id="formatAdvancedLayoutInput">
                 <option value="strict">Classic Hierarchy</option>
-                <option value="symmetrical">Centered Pyramid</option>
-                <option value="editorial">Editorial</option>
                 <option value="swimlane">Swimlane</option>
-                <option value="clustered">Clustered Teams</option>
-                <option value="masonry">Hanging Columns</option>
-                <option value="radial">Radial</option>
-                <option value="hexagonal">Hexagonal</option>
-                <option value="organic">Organic Board</option>
-                <option value="physics">Freeform Board</option>
               </select>
             </div>
-          </div>
-          <div class="field-stack compact">
-            <label for="formatPictureUploadInput">Upload Pictures</label>
-            <input id="formatPictureUploadInput" type="file" accept="image/*" multiple />
-          </div>
-          <div class="field-stack compact">
-            <label for="chartLogoInput">Logo</label>
-            <input id="chartLogoInput" type="file" accept="image/*" />
           </div>
           <div class="field-stack compact">
             <label for="structureFreeformInput">Card Spacing</label>
@@ -239,44 +221,7 @@
           </div>
           <div class="grid-2">
             <div class="field-stack compact">
-              <label for="shadowIntensityInput">Shadow Intensity</label>
-              <input id="shadowIntensityInput" type="range" min="0" max="220" />
-            </div>
-            <div class="field-stack compact">
-              <label for="blurStrengthInput">Blur Strength</label>
-              <input id="blurStrengthInput" type="range" min="0" max="24" />
-            </div>
-          </div>
-          <div class="grid-2">
-            <div class="field-stack compact">
-              <label for="backgroundDepthInput">Background Depth</label>
-              <input id="backgroundDepthInput" type="range" min="0" max="100" />
-            </div>
-            <div class="field-stack compact">
-              <label for="parallaxAmountInput">Parallax Amount</label>
-              <input id="parallaxAmountInput" type="range" min="0" max="22" />
-            </div>
-          </div>
-          <div class="grid-2">
-            <label class="check-wrap">
-              <input id="floatingCardsInput" type="checkbox" checked />
-              Floating Cards
-            </label>
-            <label class="check-wrap">
-              <input id="parallaxEnabledInput" type="checkbox" />
-              Parallax
-            </label>
-          </div>
-          <div class="grid-2">
-            <label class="check-wrap">
-              <input id="ambientGlowInput" type="checkbox" />
-              Ambient Glow
-            </label>
-          </div>
-          <div class="format-subhead">OrgChart Views</div>
-          <div class="grid-2">
-            <div class="field-stack compact">
-              <label for="orgChartViewInput">Chart View</label>
+              <label for="orgChartViewInput">Templates</label>
               <select id="orgChartViewInput">
                 <option value="standard">Standard Org Chart</option>
                 <option value="branded">Branded Custom Chart</option>
@@ -297,16 +242,16 @@
                 <option value="none">None</option>
                 <option value="department">Department</option>
                 <option value="position">Position</option>
-                <option value="location">Location</option>
-                <option value="employmentType">Employment Type</option>
-                <option value="performance">Performance</option>
-                <option value="diversityGroup">DEI Group</option>
                 <option value="span">Span of Control</option>
-                <option value="budget">Budget</option>
               </select>
             </div>
           </div>
-          <div class="format-subhead">Shape Appearance</div>
+        </div>
+      </details>
+
+      <details class="control-dropdown">
+        <summary>Card Style</summary>
+        <div class="control-section">
           <div class="grid-2">
             <div class="field-stack compact">
               <label for="shapeFillColorInput">Fill Color</label>
@@ -323,34 +268,6 @@
                 <option value="blueprint">Blueprint</option>
               </select>
             </div>
-          </div>
-          <div class="field-stack compact">
-            <label for="shapeFontInput">Shape Font</label>
-            <select id="shapeFontInput">
-            <option value="Arial">Arial</option>
-            <option value="Arial Black">Arial Black</option>
-            <option value="Georgia">Georgia</option>
-              <option value="Verdana">Verdana</option>
-              <option value="Tahoma">Tahoma</option>
-            </select>
-          </div>
-          <div class="grid-2">
-            <label class="check-wrap">
-              <input id="shapeShadowInput" type="checkbox" />
-              Shadow
-            </label>
-            <div class="field-stack compact">
-              <label for="shapeShadowIntensityInput">Shadow Strength</label>
-              <input id="shapeShadowIntensityInput" type="range" min="0" max="220" />
-            </div>
-          </div>
-        </div>
-      </details>
-
-      <details class="control-dropdown">
-        <summary>Card Style</summary>
-        <div class="control-section">
-          <div class="grid-2">
             <div class="field-stack compact">
               <label for="cardVisualTypeInput">Card Visual Type</label>
               <select id="cardVisualTypeInput">
@@ -474,10 +391,99 @@
               Email
             </label>
           </div>
+        </div>
+      </details>
 
+      <details class="control-dropdown">
+        <summary>Connectors</summary>
+        <div class="control-section">
+          <div class="grid-2">
+            <div class="field-stack compact">
+              <label for="connectorStyleInput">Connector Style</label>
+              <select id="connectorStyleInput">
+                <option value="orthogonal">Stepped</option>
+                <option value="straight">Straight</option>
+                <option value="curved">Curved</option>
+              </select>
+            </div>
+            <div class="field-stack compact">
+              <label for="connectorTypeInput">Connector Type</label>
+              <select id="connectorTypeInput">
+                <option value="solid">Solid</option>
+                <option value="dashed">Dashed</option>
+                <option value="dotted">Dotted</option>
+              </select>
+            </div>
+          </div>
+          <div class="grid-2">
+            <div class="field-stack compact">
+              <label for="connectorWeightInput">Connector Weight <span id="connectorWeightValue" class="slider-value"></span></label>
+              <input id="connectorWeightInput" class="pro-slider" type="range" min="1" max="12" />
+            </div>
+            <div class="field-stack compact">
+              <label for="connectorColorInput">Connector Color</label>
+              <input id="connectorColorInput" type="color" />
+            </div>
+          </div>
+          <div class="grid-2">
+            <div class="field-stack compact">
+              <label for="connectorStartPointsInput">Connector Start Points</label>
+              <select id="connectorStartPointsInput">
+                <option value="none">None</option>
+                <option value="arrow">Arrow</option>
+                <option value="dot">Dot</option>
+                <option value="square">Square</option>
+              </select>
+            </div>
+            <div class="field-stack compact">
+              <label for="connectorMarkersInput">Connector End Points</label>
+              <select id="connectorMarkersInput">
+                <option value="none">None</option>
+                <option value="arrow">Arrow</option>
+                <option value="dot">Dot</option>
+                <option value="square">Square</option>
+              </select>
+            </div>
+          </div>
+          <div class="grid-2">
+            <div class="field-stack compact">
+              <label for="connectorStartColorInput">Start Point Color</label>
+              <input id="connectorStartColorInput" type="color" />
+            </div>
+            <div class="field-stack compact">
+              <label for="connectorEndColorInput">Endpoint Color</label>
+              <input id="connectorEndColorInput" type="color" />
+            </div>
+          </div>
+          <div class="grid-2">
+            <div class="field-stack compact">
+              <label for="connectorStartMarkerScaleInput">Start Point Size <span id="connectorStartMarkerScaleValue" class="slider-value"></span></label>
+              <input id="connectorStartMarkerScaleInput" class="pro-slider" type="range" min="0.1" max="2.4" step="0.1" />
+            </div>
+            <div class="field-stack compact">
+              <label for="connectorMarkerScaleInput">Endpoint Size <span id="connectorMarkerScaleValue" class="slider-value"></span></label>
+              <input id="connectorMarkerScaleInput" class="pro-slider" type="range" min="0.1" max="2.4" step="0.1" />
+            </div>
+          </div>
+        </div>
+      </details>
+
+      <details class="control-dropdown">
+        <summary>Text</summary>
+        <div class="control-section">
           <div class="section-divider"></div>
           <div class="section-title-row">
             <div class="section-title">Typography</div>
+          </div>
+          <div class="field-stack compact">
+            <label for="shapeFontInput">Shape Font</label>
+            <select id="shapeFontInput">
+              <option value="Arial">Arial</option>
+              <option value="Arial Black">Arial Black</option>
+              <option value="Georgia">Georgia</option>
+              <option value="Verdana">Verdana</option>
+              <option value="Tahoma">Tahoma</option>
+            </select>
           </div>
           <div class="typography-group" data-typography-field="title">
             <div class="section-title-row">
@@ -643,75 +649,22 @@
       </details>
 
       <details class="control-dropdown">
-        <summary>Connectors</summary>
+        <summary>Background</summary>
         <div class="control-section">
+          <div class="section-divider"></div>
           <div class="grid-2">
             <div class="field-stack compact">
-              <label for="connectorStyleInput">Connector Style</label>
-              <select id="connectorStyleInput">
-                <option value="orthogonal">Stepped</option>
-                <option value="straight">Straight</option>
-                <option value="curved">Curved</option>
-              </select>
+              <label for="bgColorInput">Background Color</label>
+              <input id="bgColorInput" type="color" />
             </div>
             <div class="field-stack compact">
-              <label for="connectorTypeInput">Connector Type</label>
-              <select id="connectorTypeInput">
-                <option value="solid">Solid</option>
-                <option value="dashed">Dashed</option>
-                <option value="dotted">Dotted</option>
-              </select>
+              <label for="backgroundDepthInput">Background Depth</label>
+              <input id="backgroundDepthInput" type="range" min="0" max="100" />
             </div>
           </div>
-          <div class="grid-2">
-            <div class="field-stack compact">
-              <label for="connectorWeightInput">Connector Weight <span id="connectorWeightValue" class="slider-value"></span></label>
-              <input id="connectorWeightInput" class="pro-slider" type="range" min="1" max="12" />
-            </div>
-            <div class="field-stack compact">
-              <label for="connectorColorInput">Connector Color</label>
-              <input id="connectorColorInput" type="color" />
-            </div>
-          </div>
-          <div class="grid-2">
-            <div class="field-stack compact">
-              <label for="connectorStartPointsInput">Connector Start Points</label>
-              <select id="connectorStartPointsInput">
-                <option value="none">None</option>
-                <option value="arrow">Arrow</option>
-                <option value="dot">Dot</option>
-                <option value="square">Square</option>
-              </select>
-            </div>
-            <div class="field-stack compact">
-              <label for="connectorMarkersInput">Connector End Points</label>
-              <select id="connectorMarkersInput">
-                <option value="none">None</option>
-                <option value="arrow">Arrow</option>
-                <option value="dot">Dot</option>
-                <option value="square">Square</option>
-              </select>
-            </div>
-          </div>
-          <div class="grid-2">
-            <div class="field-stack compact">
-              <label for="connectorStartColorInput">Start Point Color</label>
-              <input id="connectorStartColorInput" type="color" />
-            </div>
-            <div class="field-stack compact">
-              <label for="connectorEndColorInput">Endpoint Color</label>
-              <input id="connectorEndColorInput" type="color" />
-            </div>
-          </div>
-          <div class="grid-2">
-            <div class="field-stack compact">
-              <label for="connectorStartMarkerScaleInput">Start Point Size <span id="connectorStartMarkerScaleValue" class="slider-value"></span></label>
-              <input id="connectorStartMarkerScaleInput" class="pro-slider" type="range" min="0.1" max="2.4" step="0.1" />
-            </div>
-            <div class="field-stack compact">
-              <label for="connectorMarkerScaleInput">Endpoint Size <span id="connectorMarkerScaleValue" class="slider-value"></span></label>
-              <input id="connectorMarkerScaleInput" class="pro-slider" type="range" min="0.1" max="2.4" step="0.1" />
-            </div>
+          <div class="field-stack compact">
+            <label for="backgroundImageInput">Upload Pictures</label>
+            <input id="backgroundImageInput" type="file" accept="image/*" multiple />
           </div>
         </div>
       </details>
