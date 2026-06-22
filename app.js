@@ -2153,6 +2153,62 @@ function rebuildRowsFromCurrentLayout(layouts = rowLayouts()) {
   return state.rows.length > 0;
 }
 
+function normalizeRowsWithinCurrentFootprint(layouts = rowLayouts()) {
+  const cardSize = currentCardSize();
+  const entries = Object.values(layouts || {});
+  if (!entries.length || !state.rows.length) {
+    return false;
+  }
+
+  const bounds = entries.reduce(
+    (result, layout) => ({
+      left: Math.min(result.left, layout.xCenter - layout.width / 2),
+      right: Math.max(result.right, layout.xCenter + layout.width / 2),
+      top: Math.min(result.top, layout.yCenter - layout.height / 2),
+      bottom: Math.max(result.bottom, layout.yCenter + layout.height / 2)
+    }),
+    {
+      left: Number.POSITIVE_INFINITY,
+      right: Number.NEGATIVE_INFINITY,
+      top: Number.POSITIVE_INFINITY,
+      bottom: Number.NEGATIVE_INFINITY
+    }
+  );
+
+  const centerX = (bounds.left + bounds.right) / 2;
+  const centerY = (bounds.top + bounds.bottom) / 2;
+  const maxRowLength = Math.max(1, ...state.rows.map((row) => row.length || 0));
+  const rowCount = Math.max(1, state.rows.length);
+  const horizontal = isHorizontalHierarchy();
+  const centerStepX = cardSize.width + Math.max(28, cardSize.width * 0.22);
+  const centerStepY = cardSize.height + Math.max(32, cardSize.height * 0.48);
+
+  state.rows.forEach((row, rowIndex) => {
+    const primaryCenter = horizontal
+      ? centerX - ((rowCount - 1) * centerStepX) / 2 + rowIndex * centerStepX
+      : centerY - ((rowCount - 1) * centerStepY) / 2 + rowIndex * centerStepY;
+    const secondaryStart = horizontal
+      ? centerY - ((row.length - 1) * centerStepY) / 2
+      : centerX - ((row.length - 1) * centerStepX) / 2;
+
+    row.forEach((nodeId, columnIndex) => {
+      const node = state.nodes?.[nodeId];
+      if (!node) {
+        return;
+      }
+      const secondaryCenter = secondaryStart + columnIndex * (horizontal ? centerStepY : centerStepX);
+      const clamped = horizontal
+        ? clampManualNodePosition(primaryCenter, secondaryCenter)
+        : clampManualNodePosition(secondaryCenter, primaryCenter);
+      node.manualPosition = true;
+      node.xCenter = clamped.xCenter;
+      node.yCenter = clamped.yCenter;
+    });
+  });
+
+  return true;
+}
+
 function normalizeCanvasSpacing() {
   if (!state.rows.length) {
     notify('Add cards to the canvas before normalizing spacing.');
@@ -2161,8 +2217,7 @@ function normalizeCanvasSpacing() {
   pushCanvasHistory();
   const layouts = rowLayouts();
   rebuildRowsFromCurrentLayout(layouts);
-  clearManualNodePositions();
-  compactRows();
+  normalizeRowsWithinCurrentFootprint(layouts);
   render({ centerContent: false });
   scheduleFitCanvasToContent(null, true);
   scheduleStatePersistence();
