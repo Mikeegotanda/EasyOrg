@@ -1868,6 +1868,20 @@ body {
   display: none;
 }
 
+.marquee-selection {
+  position: absolute;
+  z-index: 4;
+  pointer-events: none;
+  border: 2px solid rgba(39, 116, 255, 0.82);
+  border-radius: 12px;
+  background: rgba(39, 116, 255, 0.14);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.32);
+}
+
+.marquee-selection.is-hidden {
+  display: none;
+}
+
 .canvas-card {
   position: absolute;
   width: 300px;

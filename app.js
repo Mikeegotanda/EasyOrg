@@ -463,6 +463,7 @@ const state = {
   excludedConnections: [],
   connectionsDrawerOpen: false,
   selectedCardId: null,
+  selectedCardIds: [],
   selectedMemberId: null,
   editingMemberId: null,
   nodeSequence: 1,
@@ -525,6 +526,7 @@ const dom = {
   cancelEditMemberBtn: document.getElementById('cancelEditMemberBtn'),
   cardLayer: document.getElementById('cardLayer'),
   connectorLayer: document.getElementById('connectorLayer'),
+  marqueeSelection: document.getElementById('marqueeSelection'),
   dragDropGuide: document.getElementById('dragDropGuide'),
   slide: document.getElementById('slidePreview'),
   slideHeader: document.getElementById('slideHeader'),
@@ -684,6 +686,8 @@ const historyState = {
   restoring: false
 };
 
+let suppressCanvasCardClickUntil = 0;
+
 function cloneForHistory(value) {
   return structuredClone(value);
 }
@@ -695,6 +699,7 @@ function canvasHistorySnapshot() {
     manualLinks: cloneForHistory(state.manualLinks),
     excludedConnections: cloneForHistory(state.excludedConnections || []),
     selectedCardId: state.selectedCardId,
+    selectedCardIds: cloneForHistory(state.selectedCardIds || []),
     nodeSequence: state.nodeSequence,
     settings: cloneForHistory(state.settings),
     autoConnect: state.autoConnect,
@@ -777,6 +782,7 @@ function restoreCanvasHistorySnapshot(snapshot) {
   state.manualLinks = cloneForHistory(snapshot.manualLinks);
   state.excludedConnections = cloneForHistory(snapshot.excludedConnections || []);
   state.selectedCardId = snapshot.selectedCardId;
+  state.selectedCardIds = Array.isArray(snapshot.selectedCardIds) ? cloneForHistory(snapshot.selectedCardIds) : [];
   state.nodeSequence = snapshot.nodeSequence;
   state.settings = normalizeSettings(cloneForHistory(snapshot.settings));
   state.autoConnect = snapshot.autoConnect;
@@ -1129,6 +1135,77 @@ function clearConnectTargetHighlights() {
   dom.cardLayer.querySelectorAll('.connect-target').forEach((element) => {
     element.classList.remove('connect-target');
     element.removeAttribute('data-connect-side');
+  });
+}
+
+function selectedCardIdSet() {
+  return new Set(Array.isArray(state.selectedCardIds) ? state.selectedCardIds.filter((nodeId) => state.nodes[nodeId]) : []);
+}
+
+function setSelectedCardIds(nodeIds = []) {
+  state.selectedCardIds = Array.from(
+    new Set((Array.isArray(nodeIds) ? nodeIds : []).filter((nodeId) => state.nodes[nodeId]))
+  );
+}
+
+function clearMarqueeSelectionBox() {
+  if (!dom.marqueeSelection) {
+    return;
+  }
+  dom.marqueeSelection.classList.add('is-hidden');
+  dom.marqueeSelection.removeAttribute('style');
+}
+
+function updateMarqueeSelectionBox(rect) {
+  if (!dom.marqueeSelection) {
+    return;
+  }
+  dom.marqueeSelection.classList.remove('is-hidden');
+  dom.marqueeSelection.style.left = `${rect.x}px`;
+  dom.marqueeSelection.style.top = `${rect.y}px`;
+  dom.marqueeSelection.style.width = `${rect.width}px`;
+  dom.marqueeSelection.style.height = `${rect.height}px`;
+}
+
+function selectionRectFromPoints(startPoint, endPoint) {
+  const x = Math.min(startPoint.x, endPoint.x);
+  const y = Math.min(startPoint.y, endPoint.y);
+  return {
+    x,
+    y,
+    width: Math.abs(endPoint.x - startPoint.x),
+    height: Math.abs(endPoint.y - startPoint.y)
+  };
+}
+
+function rectIntersects(a, b) {
+  return a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y;
+}
+
+function selectedNodeIdsInRect(rect, layouts = rowLayouts()) {
+  return Object.entries(layouts)
+    .filter(([, layout]) =>
+      rectIntersects(rect, {
+        x: layout.x,
+        y: layout.y,
+        width: layout.width,
+        height: layout.height
+      })
+    )
+    .map(([nodeId]) => nodeId);
+}
+
+function moveNodeIdsByLayerDelta(nodeIds, deltaX, deltaY, layouts = rowLayouts()) {
+  nodeIds.forEach((nodeId) => {
+    const node = state.nodes[nodeId];
+    const layout = layouts[nodeId];
+    if (!node || !layout) {
+      return;
+    }
+    const clamped = clampManualNodePosition(layout.xCenter + deltaX, layout.yCenter + deltaY);
+    node.manualPosition = true;
+    node.xCenter = clamped.xCenter;
+    node.yCenter = clamped.yCenter;
   });
 }
 
@@ -1533,6 +1610,7 @@ function clearCanvas() {
   state.nodes = {};
   state.manualLinks = [];
   state.selectedCardId = null;
+  state.selectedCardIds = [];
   state.selectedMemberId = null;
   state.canvasBoardWidth = null;
   state.canvasBoardHeight = null;
@@ -1552,6 +1630,7 @@ function removeCanvasNode(nodeId) {
   if (state.selectedCardId === nodeId) {
     state.selectedCardId = null;
   }
+  state.selectedCardIds = (state.selectedCardIds || []).filter((selectedId) => selectedId !== nodeId);
   if (state.selectedMemberId === node.memberId) {
     state.selectedMemberId = null;
   }
@@ -1624,6 +1703,7 @@ function removeNodesForMemberIds(memberIds) {
   if (state.selectedCardId && nodeSet.has(state.selectedCardId)) {
     state.selectedCardId = null;
   }
+  state.selectedCardIds = (state.selectedCardIds || []).filter((selectedId) => !nodeSet.has(selectedId));
   if (state.selectedMemberId && memberSet.has(state.selectedMemberId)) {
     state.selectedMemberId = null;
   }
@@ -2789,6 +2869,7 @@ function renderCards(layouts) {
   const textScale = getCardTextScaleFactor();
   const blurStrength = clamp(Number(state.settings.blurStrength || 10), 0, 24);
   const floatingClass = state.settings.floatingCards ? ' float-on-hover' : '';
+  const selectedIds = selectedCardIdSet();
 
   dom.cardLayer.innerHTML = Object.entries(layouts)
     .map(([nodeId, layout]) => {
@@ -2798,7 +2879,7 @@ function renderCards(layouts) {
         return '';
       }
 
-      const selectedClass = state.selectedCardId === nodeId ? 'selected' : '';
+      const selectedClass = state.selectedCardId === nodeId || selectedIds.has(nodeId) ? 'selected' : '';
       const visual = cardVisualStyles();
       const colorByValue = memberOrgViewValue(member, nodeId);
       const viewColor = state.settings.orgChartColorBy && state.settings.orgChartColorBy !== 'none'
@@ -3003,7 +3084,12 @@ function removeDragGhost(ghost) {
 }
 
 function onCardClick(nodeId) {
+  if (Date.now() < suppressCanvasCardClickUntil) {
+    return;
+  }
+
   const memberId = state.nodes[nodeId]?.memberId || null;
+  setSelectedCardIds([]);
   if (state.selectedCardId === null) {
     state.selectedCardId = nodeId;
     state.selectedMemberId = memberId;
@@ -6158,6 +6244,58 @@ function bindControlEvents() {
     notify('Card added to canvas.');
   });
 
+  dom.cardLayer?.addEventListener('pointerdown', (event) => {
+    if (event.button !== 0) {
+      return;
+    }
+    if (event.target.closest('.canvas-card') || event.target.closest('.canvas-card-remove-btn')) {
+      return;
+    }
+
+    event.preventDefault();
+    const startPoint = layerPointFromClient(event.clientX, event.clientY);
+    let moved = false;
+
+    const move = (moveEvent) => {
+      const dx = moveEvent.clientX - event.clientX;
+      const dy = moveEvent.clientY - event.clientY;
+      if (!moved && Math.hypot(dx, dy) > 8) {
+        moved = true;
+      }
+      if (!moved) {
+        return;
+      }
+      const currentPoint = layerPointFromClient(moveEvent.clientX, moveEvent.clientY);
+      updateMarqueeSelectionBox(selectionRectFromPoints(startPoint, currentPoint));
+    };
+
+    const up = (upEvent) => {
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+      const endPoint = layerPointFromClient(upEvent.clientX, upEvent.clientY);
+      const selectionRect = selectionRectFromPoints(startPoint, endPoint);
+      clearMarqueeSelectionBox();
+
+      if (!moved) {
+        setSelectedCardIds([]);
+        state.selectedCardId = null;
+        state.selectedMemberId = null;
+        render();
+        return;
+      }
+
+      const selectedIds = selectedNodeIdsInRect(selectionRect, rowLayouts());
+      setSelectedCardIds(selectedIds);
+      state.selectedCardId = null;
+      state.selectedMemberId = null;
+      render();
+      notify(selectedIds.length ? `${selectedIds.length} cards selected.` : 'No cards selected.');
+    };
+
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
+  });
+
   let resizeFrame = null;
   window.addEventListener('resize', () => {
     if (resizeFrame) {
@@ -6242,23 +6380,28 @@ function startCardDrag(event, nodeId) {
   }
   event.preventDefault();
 
+  const selectedIds = selectedCardIdSet();
+  const dragNodeIds = selectedIds.has(nodeId) && selectedIds.size > 1 ? Array.from(selectedIds) : [nodeId];
+  const cards = dragNodeIds
+    .map((id) => dom.cardLayer.querySelector(`[data-node-id="${id}"]`))
+    .filter(Boolean);
+  const startLayouts = rowLayouts();
   const startClientX = event.clientX;
   const startClientY = event.clientY;
-  const card = dom.cardLayer.querySelector(`[data-node-id="${nodeId}"]`);
+  const startLayerPoint = layerPointFromClient(event.clientX, event.clientY);
   const dragStartSnapshot = canvasHistorySnapshot();
   let moved = false;
   let frame = null;
   let ghost = null;
 
   const moveCardPreview = (dx, dy) => {
-    if (!card) {
-      return;
-    }
     if (frame) {
       cancelAnimationFrame(frame);
     }
     frame = requestAnimationFrame(() => {
-      card.style.transform = `translate3d(${dx}px, ${dy}px, 0)`;
+      cards.forEach((card) => {
+        card.style.transform = `translate3d(${dx}px, ${dy}px, 0)`;
+      });
       frame = null;
     });
   };
@@ -6269,10 +6412,12 @@ function startCardDrag(event, nodeId) {
     if (!moved && Math.hypot(dx, dy) > 8) {
       moved = true;
       state.draggingNodeId = nodeId;
-      if (card) {
+      cards.forEach((card) => {
         card.classList.add('dragging');
         card.classList.add('selected');
-        ghost = createDragGhost(card, moveEvent);
+      });
+      if (cards.length === 1) {
+        ghost = createDragGhost(cards[0], moveEvent);
         moveDragGhost(ghost, moveEvent.clientX, moveEvent.clientY);
       }
     }
@@ -6291,10 +6436,10 @@ function startCardDrag(event, nodeId) {
       cancelAnimationFrame(frame);
       frame = null;
     }
-    if (card) {
+    cards.forEach((card) => {
       card.classList.remove('dragging');
       card.style.transform = '';
-    }
+    });
     removeDragGhost(ghost);
     hideDragDropGuide();
 
@@ -6302,13 +6447,21 @@ function startCardDrag(event, nodeId) {
       return;
     }
 
-    const { x, y } = layerPointFromClient(upEvent.clientX, upEvent.clientY);
+    const endLayerPoint = layerPointFromClient(upEvent.clientX, upEvent.clientY);
+    const deltaX = endLayerPoint.x - startLayerPoint.x;
+    const deltaY = endLayerPoint.y - startLayerPoint.y;
     pushCanvasHistory(dragStartSnapshot);
-    placeNodeAtPoint(nodeId, x, y);
+    moveNodeIdsByLayerDelta(dragNodeIds, deltaX, deltaY, startLayouts);
     state.draggingNodeId = null;
+    if (dragNodeIds.length > 1) {
+      state.selectedCardId = null;
+      state.selectedMemberId = null;
+      setSelectedCardIds(dragNodeIds);
+    }
+    suppressCanvasCardClickUntil = Date.now() + 220;
     refreshCanvas(false);
     scheduleStatePersistence();
-    notify('Card moved.');
+    notify(dragNodeIds.length > 1 ? `${dragNodeIds.length} cards moved.` : 'Card moved.');
   };
 
   window.addEventListener('pointermove', move);
@@ -7280,6 +7433,7 @@ function loadSavedChart(chartId) {
   state.nodes = structuredClone(snapshot.nodes || {});
   state.manualLinks = structuredClone(snapshot.manualLinks || []);
   state.selectedCardId = null;
+  state.selectedCardIds = [];
   state.editingMemberId = null;
   state.nodeSequence = snapshot.nodeSequence || Math.max(1, Object.keys(state.nodes).length + 1);
   state.settings = normalizeSettings(snapshot.settings);
@@ -7682,6 +7836,7 @@ function applyStatePayload(parsed) {
   state.manualLinks = Array.isArray(parsed.manualLinks) ? parsed.manualLinks : state.manualLinks;
   state.excludedConnections = Array.isArray(parsed.excludedConnections) ? parsed.excludedConnections : state.excludedConnections;
   state.selectedCardId = null;
+  state.selectedCardIds = [];
   state.nodeSequence = parsed.nodeSequence || state.nodeSequence || 1;
   if (parsed.settings) {
     state.settings = normalizeSettings(parsed.settings);
